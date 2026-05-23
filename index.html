@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>ロック画面セレクター</title>
     <style>
-        /* 全体共通スタイル */
         body {
             margin: 0;
-            padding: 0;
             background-color: #000000;
             color: #ffffff;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -17,36 +15,10 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            overflow: hidden;
-            touch-action: none;
         }
-
-        .screen {
-            display: none; /* 初期状態は非表示 */
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100vh;
-        }
-
-        .screen.active {
-            display: flex; /* activeクラスがついた画面だけ表示 */
-        }
-
-        /* ----------------------------------
-           1. スタート画面（選択画面）
-        ---------------------------------- */
-        .title {
-            font-size: 1.8rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            font-size: 1rem;
-            color: #888;
-            margin-bottom: 50px;
-        }
+        .title { font-size: 1.8rem; font-weight: bold; margin-bottom: 10px; }
+        .subtitle { font-size: 1rem; color: #888; margin-bottom: 50px; }
+        
         .menu-btn {
             width: 240px;
             padding: 18px;
@@ -57,352 +29,25 @@
             background-color: #1c1c1e;
             border: 2px solid #3a3a3c;
             border-radius: 12px;
-            cursor: pointer;
+            text-align: center;
+            text-decoration: none; /* リンクの下線を消す */
+            display: block;
+            box-sizing: border-box;
             transition: all 0.2s;
         }
         .menu-btn:active {
             background-color: #3a3a3c;
             transform: scale(0.98);
         }
-
-        /* ----------------------------------
-           共通のヘッダー・フッター
-        ---------------------------------- */
-        .status {
-            font-size: 0.8rem;
-            color: #888888;
-            letter-spacing: 1.5px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-        .message {
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-            height: 24px;
-            text-align: center;
-        }
-        .back-btn {
-            margin-top: 40px;
-            padding: 8px 16px;
-            background-color: #1c1c1e;
-            color: #888888;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-
-        /* ----------------------------------
-           2. パターンロック画面用
-        ---------------------------------- */
-        #canvas-container {
-            position: relative;
-            width: 320px;
-            height: 320px;
-        }
-        canvas {
-            background-color: transparent;
-            cursor: pointer;
-        }
-
-        /* ----------------------------------
-           3. 数字パスコード画面用
-        ---------------------------------- */
-        .dots-container {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 50px;
-            height: 15px;
-        }
-        .dot {
-            width: 12px;
-            height: 12px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            transition: background-color 0.1s ease;
-        }
-        .dot.filled {
-            background-color: #ffffff;
-        }
-        .keypad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px 25px;
-            width: 280px;
-        }
-        .key {
-            width: 75px;
-            height: 75px;
-            border-radius: 50%;
-            background-color: #1c1c1e;
-            color: #ffffff;
-            font-size: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            transition: background-color 0.1s;
-        }
-        .key:active {
-            background-color: #3a3a3c;
-        }
-        .key.text-key {
-            background-color: transparent;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-        }
-        .key.text-key:active {
-            background-color: transparent;
-            opacity: 0.5;
-        }
     </style>
 </head>
 <body>
 
-    <div id="screen-start" class="screen active">
-        <div class="title">LOCK SCREEN</div>
-        <div class="subtitle">認証タイプを選択してください</div>
-        <button class="menu-btn" onclick="switchScreen('pattern')">パターンロック</button>
-        <button class="menu-btn" onclick="switchScreen('pin')">数字パスコード</button>
-    </div>
+    <div class="title">LOCK SCREEN</div>
+    <div class="subtitle">認証タイプを選択してください</div>
 
+    <a href="pattern.html" class="menu-btn">パターンロック</a>
+    <a href="pin.html" class="menu-btn">数字パスコード</a>
 
-    <div id="screen-pattern" class="screen">
-        <div class="status" id="p-status">STEP 1: 登録</div>
-        <div class="message" id="p-message">新しいパターンを描いてください</div>
-        <div id="canvas-container">
-            <canvas id="lockCanvas" width="320" height="320"></canvas>
-        </div>
-        <button class="back-btn" onclick="toStartPage()">メニューに戻る</button>
-    </div>
-
-
-    <div id="screen-pin" class="screen">
-        <div class="status" id="n-status">STEP 1: 登録</div>
-        <div class="message" id="n-message">新しいパスコード（4桁）を入力</div>
-        <div class="dots-container">
-            <div class="dot" id="dot0"></div>
-            <div class="dot" id="dot1"></div>
-            <div class="dot" id="dot2"></div>
-            <div class="dot" id="dot3"></div>
-        </div>
-        <div class="keypad">
-            <div class="key" onclick="pressKey('1')">1</div>
-            <div class="key" onclick="pressKey('2')">2</div>
-            <div class="key" onclick="pressKey('3')">3</div>
-            <div class="key" onclick="pressKey('4')">4</div>
-            <div class="key" onclick="pressKey('5')">5</div>
-            <div class="key" onclick="pressKey('6')">6</div>
-            <div class="key" onclick="pressKey('7')">7</div>
-            <div class="key" onclick="pressKey('8')">8</div>
-            <div class="key" onclick="pressKey('9')">9</div>
-            <div class="key text-key"></div>
-            <div class="key" onclick="pressKey('0')">0</div>
-            <div class="key text-key" onclick="pressDelete()">削除</div>
-        </div>
-        <button class="back-btn" onclick="toStartPage()">メニューに戻る</button>
-    </div>
-
-
-    <script>
-        // ----------------------------------
-        // 画面切り替えシステム
-        // ----------------------------------
-        function switchScreen(mode) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            if (mode === 'pattern') {
-                document.getElementById('screen-pattern').classList.add('active');
-                resetPattern();
-            } else if (mode === 'pin') {
-                document.getElementById('screen-pin').classList.add('active');
-                resetPin();
-            }
-        }
-
-        function toStartPage() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById('screen-start').classList.add('active');
-        }
-
-
-        // ----------------------------------
-        // 【ロジックA】パターンロック用
-        // ----------------------------------
-        const canvas = document.getElementById('lockCanvas');
-        const ctx = canvas.getContext('2d');
-        const pStatus = document.getElementById('p-status');
-        const pMessage = document.getElementById('p-message');
-
-        let pState = 'REG_1'; // REG_1, REG_2, LOCKED
-        let pFirstPattern = [];
-        let pSavedPattern = [];
-        let pCircles = [];
-        let pSelected = [];
-        let pIsDrawing = false;
-        let pCurrentPos = { x: 0, y: 0 };
-
-        // 点の配置初期化
-        const spacingX = canvas.width / 4;
-        const spacingY = canvas.height / 4;
-        for (let r = 0; r < 3; r++) {
-            for (let c = 0; c < 3; c++) {
-                pCircles.push({ id: r * 3 + c, x: spacingX * (c + 1), y: spacingY * (r + 1) });
-            }
-        }
-
-        function drawPattern(isError = false) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (pSelected.length > 0) {
-                ctx.beginPath();
-                ctx.strokeStyle = isError ? '#f44336' : (pState === 'LOCKED' ? '#4caf50' : '#00adb5');
-                ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.moveTo(pCircles[pSelected[0]].x, pCircles[pSelected[0]].y);
-                for (let i = 1; i < pSelected.length; i++) {
-                    ctx.lineTo(pCircles[pSelected[i]].x, pCircles[pSelected[i]].y);
-                }
-                if (pIsDrawing) ctx.lineTo(pCurrentPos.x, pCurrentPos.y);
-                ctx.stroke();
-            }
-            pCircles.forEach(circle => {
-                ctx.beginPath();
-                ctx.arc(circle.x, circle.y, 12, 0, Math.PI * 2);
-                if (pSelected.includes(circle.id)) {
-                    ctx.fillStyle = isError ? '#f44336' : (pState === 'LOCKED' ? '#4caf50' : '#00adb5');
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.arc(circle.x, circle.y, 20, 0, Math.PI * 2);
-                    ctx.strokeStyle = isError ? 'rgba(244,67,54,0.3)' : 'rgba(0,173,181,0.3)';
-                    ctx.lineWidth = 2; ctx.stroke();
-                } else {
-                    ctx.fillStyle = '#555555'; ctx.fill();
-                }
-            });
-        }
-
-        function getMousePos(e) {
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: clientX - rect.left, y: clientY - rect.top };
-        }
-
-        function checkPatternCollision(pos) {
-            for (let c of pCircles) {
-                if (Math.hypot(c.x - pos.x, c.y - pos.y) < 25) {
-                    if (!pSelected.includes(c.id)) {
-                        pSelected.push(c.id);
-                        if (navigator.vibrate) navigator.vibrate(15);
-                    }
-                    break;
-                }
-            }
-        }
-
-        function pStart(e) { e.preventDefault(); pIsDrawing = true; pSelected = []; pCurrentPos = getMousePos(e); checkPatternCollision(pCurrentPos); drawPattern(); }
-        function pMove(e) { if (!pIsDrawing) return; e.preventDefault(); pCurrentPos = getMousePos(e); checkPatternCollision(pCurrentPos); drawPattern(); }
-        function pEnd() {
-            if (!pIsDrawing) return; pIsDrawing = false;
-            if (pSelected.length < 3) { showPError("3つ以上の点をつないでください"); return; }
-
-            if (pState === 'REG_1') {
-                pFirstPattern = [...pSelected]; pState = 'REG_2';
-                pStatus.innerText = "STEP 2: 確認"; pMessage.innerText = "確認のため、もう一度描いてください";
-            } else if (pState === 'REG_2') {
-                if (JSON.stringify(pSelected) === JSON.stringify(pFirstPattern)) {
-                    pSavedPattern = [...pSelected]; pState = 'LOCKED';
-                    pStatus.innerText = "STATUS: ロック中"; pMessage.style.color = '#4caf50'; pMessage.innerText = "登録完了！ロックしました";
-                    setTimeout(() => { pMessage.style.color = '#fff'; pMessage.innerText = "パターンを入力して解除"; }, 1500);
-                } else {
-                    showPError("不一致。最初からやり直し"); pState = 'REG_1'; pStatus.innerText = "STEP 1: 登録";
-                }
-            } else if (pState === 'LOCKED') {
-                if (JSON.stringify(pSelected) === JSON.stringify(pSavedPattern)) {
-                    pMessage.style.color = '#4caf50'; pMessage.innerText = "ロック解除成功！";
-                } else { showPError("パターンが違います"); }
-            }
-            pSelected = []; drawPattern();
-        }
-
-        function showPError(msg) {
-            pMessage.style.color = '#f44336'; pMessage.innerText = msg; drawPattern(true);
-            setTimeout(() => {
-                pMessage.style.color = '#fff';
-                pMessage.innerText = pState==='REG_1' ? "新しいパターンを描いてください" : (pState==='REG_2' ? "確認のため、もう一度描いてください" : "パターンを入力して解除");
-                pSelected = []; drawPattern();
-            }, 1500);
-        }
-
-        function resetPattern() {
-            pState = 'REG_1'; pFirstPattern = []; pSavedPattern = []; pSelected = [];
-            pStatus.innerText = "STEP 1: 登録"; pMessage.style.color = '#fff'; pMessage.innerText = "新しいパターンを描いてください";
-            drawPattern();
-        }
-
-        canvas.addEventListener('mousedown', pStart); window.addEventListener('mousemove', pMove); window.addEventListener('mouseup', pEnd);
-        canvas.addEventListener('touchstart', pStart, {passive:false}); canvas.addEventListener('touchmove', pMove, {passive:false}); window.addEventListener('touchend', pEnd);
-
-
-        // ----------------------------------
-        // 【ロジックB】数字パスコード用
-        // ----------------------------------
-        const nStatus = document.getElementById('n-status');
-        const nMessage = document.getElementById('n-message');
-        let nState = 'REG_1'; // REG_1, REG_2, LOCKED
-        let nInput = '';
-        let nFirstPass = '';
-        let nSavedPass = '';
-
-        function pressKey(num) {
-            if (nInput.length >= 4) return;
-            nInput += num; updateDots();
-            if (navigator.vibrate) navigator.vibrate(15);
-            if (nInput.length === 4) setTimeout(handlePinComplete, 200);
-        }
-
-        function pressDelete() { if (nInput.length > 0) { nInput = nInput.slice(0, -1); updateDots(); } }
-
-        function updateDots() {
-            for (let i = 0; i < 4; i++) {
-                document.getElementById(`dot${i}`).classList[i < nInput.length ? 'add' : 'remove']('filled');
-            }
-        }
-
-        function handlePinComplete() {
-            if (nState === 'REG_1') {
-                nFirstPass = nInput; nState = 'REG_2';
-                nStatus.innerText = "STEP 2: 確認"; nMessage.innerText = "確認のためもう一度入力";
-            } else if (nState === 'REG_2') {
-                if (nInput === nFirstPass) {
-                    nSavedPass = nInput; nState = 'LOCKED';
-                    nStatus.innerText = "STATUS: ロック中"; nMessage.style.color = '#4caf50'; nMessage.innerText = "登録完了！ロックしました";
-                    setTimeout(() => { nMessage.style.color = '#fff'; nMessage.innerText = "パスコードを入力して解除"; }, 1500);
-                } else {
-                    showNError("パスコードが一致しません"); nState = 'REG_1'; nStatus.innerText = "STEP 1: 登録";
-                }
-            } else if (nState === 'LOCKED') {
-                if (nInput === nSavedPass) {
-                    nMessage.style.color = '#4caf50'; nMessage.innerText = "ロック解除成功！";
-                } else { showNError("コードが違います"); }
-            }
-            nInput = ''; updateDots();
-        }
-
-        function showNError(msg) {
-            nMessage.style.color = '#f44336'; nMessage.innerText = msg;
-            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-            setTimeout(() => {
-                nMessage.style.color = '#fff';
-                nMessage.innerText = nState==='REG_1' ? "新しいパスコード（4桁）を入力" : (nState==='REG_2' ? "確認のためもう一度入力" : "パスコードを入力して解除");
-            }, 1500);
-        }
-
-        function resetPin() {
-            nState = 'REG_1'; nInput = ''; nFirstPass = ''; nSavedPass = '';
-            nStatus.innerText = "STEP 1: 登録"; nMessage.style.color = '#fff'; nMessage.innerText = "新しいパスコード（4桁）を入力";
-            updateDots();
-        }
-    </script>
 </body>
 </html>
