@@ -1,1 +1,260 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AI図形チャレンジ（スマホ対応版）</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #000000; /* 先ほどのロック画面に合わせたダークモード */
+            color: #ffffff;
+            margin: 0;
+            padding: 20px 10px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+            touch-action: none; /* スマホのスクロールやピンチズームを完全に禁止 */
+        }
+        #mission-display {
+            font-size: 24px;
+            color: #ff5722;
+            font-weight: bold;
+            margin: 10px 0;
+            height: 35px;
+        }
+        #result-display {
+            font-size: 16px;
+            color: #ccc;
+            margin: 10px 0;
+            height: 48px; /* 2行になっても崩れないよう少し高さを確保 */
+            padding: 0 10px;
+        }
+        #canvas-container {
+            margin: 15px auto;
+            width: 250px;
+            height: 250px;
+        }
+        canvas {
+            border: none;
+            background: #fff;
+            cursor: crosshair;
+            box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+            border-radius: 12px;
+            display: block;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            border: none;
+            background: #007bff;
+            color: white;
+            transition: background 0.2s;
+        }
+        button:disabled {
+            background: #333;
+            color: #777;
+        }
+        button.reset-btn {
+            background: #3a3a3c;
+            margin-left: 10px;
+        }
+        #debug-info {
+            font-size: 11px;
+            color: #888;
+            background: #1c1c1e;
+            padding: 8px;
+            display: inline-block;
+            border-radius: 6px;
+            max-width: 90%;
+            word-break: break-all;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-top: 25px;
+            color: #888;
+            font-size: 14px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="mission-display">モデル読み込み中...</div>
+    <div id="result-display"></div>
+    
+    <div id="canvas-container">
+        <canvas id="drawArea" width="224" height="224" style="width: 250px; height: 250px;"></canvas>
+    </div>
+
+    <div class="controls">
+        <button id="startBtn" onclick="startGame()" disabled>スタート！</button>
+        <button class="reset-btn" onclick="clearCanvas()">描き直す</button>
+    </div>
+
+    <div id="debug-info">準備中...</div>
+    
+    <div>
+        <a href="index.html" class="back-btn">メニューに戻る</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <script>
+        const URL = "https://teachablemachine.withgoogle.com/models/xI6HTomcF/";
+        let model, labels = [];
+        let currentStep = -1;
+        let isWaiting = false;
+
+        const canvas = document.getElementById('drawArea');
+        const ctx = canvas.getContext('2d');
+        const missionDisplay = document.getElementById('mission-display');
+        const resultDisplay = document.getElementById('result-display');
+        const debugInfo = document.getElementById('debug-info');
+
+        // --- 初期化 ---
+        async function initAI() {
+            try {
+                model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+                labels = model.getClassLabels();
+                missionDisplay.innerHTML = "準備完了！";
+                document.getElementById('startBtn').disabled = false;
+                debugInfo.innerHTML = "読み込まれたラベル: " + labels.join(", ");
+                clearCanvas(); // 背景を白で初期化
+            } catch (e) {
+                missionDisplay.innerHTML = "エラー: モデルの読み込みに失敗しました";
+            }
+        }
+
+        function startGame() {
+            currentStep = 0;
+            updateMission();
+            clearCanvas();
+            document.getElementById('startBtn').disabled = true;
+        }
+
+        function updateMission() {
+            if (currentStep < labels.length) {
+                missionDisplay.innerHTML = `お題：【 ${labels[currentStep]} 】`;
+                resultDisplay.innerHTML = "描き終わったら、指を離してね！";
+                resultDisplay.style.color = "#ccc";
+            } else {
+                missionDisplay.innerHTML = "🎉 全問クリア！";
+                resultDisplay.innerHTML = "お疲れ様でした！";
+                resultDisplay.style.color = "#4caf50";
+                currentStep = -1;
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('startBtn').innerText = "もう一度遊ぶ";
+            }
+        }
+
+        // --- お絵描き設定 ---
+        ctx.lineWidth = 14; // 224マスのキャンバスに対してスマホで描きやすい太さに調整
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#000000';
+        let drawing = false;
+
+        // 座標取得関数（マウスとタッチの両方を一本化）
+        function getEventPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            // 画面上の表示サイズ(250)から、Canvas内部の解像度(224)へ座標を変換
+            const x = (clientX - rect.left) * (canvas.width / rect.width);
+            const y = (clientY - rect.top) * (canvas.height / rect.height);
+            return { x, y };
+        }
+
+        // 描き始め
+        function startDrawing(e) {
+            if (currentStep === -1 || isWaiting) return;
+            e.preventDefault();
+            drawing = true;
+            ctx.beginPath();
+            const pos = getEventPos(e);
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        // 描いている最中
+        function moveDrawing(e) {
+            if (!drawing) return;
+            e.preventDefault();
+            const pos = getEventPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        // 描き終わり（判定トリガー）
+        function endDrawing(e) {
+            if (drawing) {
+                e.preventDefault();
+                drawing = false;
+                predict(); 
+            }
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (currentStep !== -1) resultDisplay.innerHTML = "描き終わったら、指を離してね！";
+        }
+
+        // --- 判定ロジック ---
+        async function predict() {
+            if (!model || currentStep === -1) return;
+
+            const prediction = await model.predict(canvas);
+            const targetLabel = labels[currentStep];
+            let targetProb = 0;
+
+            let debugText = "";
+            prediction.forEach(p => {
+                debugText += `${p.className}: ${Math.round(p.probability * 100)}% | `;
+                if (p.className === targetLabel) targetProb = p.probability;
+            });
+            debugInfo.innerHTML = debugText;
+
+            if (targetProb >= 0.85) { // スマホのブレを考慮し、合格基準を90%から85%に微調整
+                isWaiting = true;
+                resultDisplay.innerHTML = `クリア！ (${Math.round(targetProb * 100)}%)`;
+                resultDisplay.style.color = "#4caf50";
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // 成功時のバイブ
+
+                setTimeout(() => {
+                    currentStep++;
+                    updateMission();
+                    clearCanvas();
+                    isWaiting = false;
+                }, 2000);
+            } else {
+                resultDisplay.innerHTML = `もっと「${targetLabel}」っぽく描いてみて！ (${Math.round(targetProb * 100)}%)`;
+                resultDisplay.style.color = "#f44336";
+                if (navigator.vibrate) navigator.vibrate(50); // 失敗時のプチバイブ
+            }
+        }
+
+        // PC用マウスイベント
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', moveDrawing);
+        window.addEventListener('mouseup', endDrawing);
+
+        // スマホ用タッチイベント
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', moveDrawing, { passive: false });
+        window.addEventListener('touchend', endDrawing);
+
+        initAI();
+    </script>
+</body>
+</html>
