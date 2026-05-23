@@ -105,6 +105,13 @@
             cursor: pointer;
             font-size: 0.8rem;
         }
+        .back-btn {
+            display: inline-block;
+            margin-top: 25px;
+            color: #888;
+            font-size: 14px;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -134,6 +141,10 @@
     </div>
 
     <button id="reset-btn" onclick="resetAll()">最初から登録し直す</button>
+
+    <div>
+        <a href="index.html" class="back-btn">メニューに戻る</a>
+    </div>
 
     <script>
         const statusText = document.getElementById('status');
