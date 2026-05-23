@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>スマホ風 パターンロック</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: none; /* スクロールやダブルタップズームを禁止 */
+        }
+
+        #message {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            height: 24px;
+            text-align: center;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+        }
+
+        canvas {
+            background-color: transparent;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="message">パターンを入力してください</div>
+    <div id="canvas-container">
+        <canvas id="lockCanvas" width="320" height="320"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('lockCanvas');
+        const ctx = canvas.getContext('2d');
+        const message = document.getElementById('message');
+
+        // 正解のパターン（点のインデックス：0〜8）
+        // 0 1 2
+        // 3 4 5
+        // 6 7 8
+        // 例: 「Z」の形 (0 -> 1 -> 2 -> 4 -> 6 -> 7 -> 8)
+        const CORRECT_PATTERN = [0, 1, 2, 4, 6, 7, 8];
+
+        const rows = 3;
+        const cols = 3;
+        const circles = [];
+        let selectedCircles = [];
+        let isDrawing = false;
+        let currentPos = { x: 0, y: 0 };
+
+        // 1. 点（ノード）の配置を初期化
+        const spacingX = canvas.width / (cols + 1);
+        const spacingY = canvas.height / (rows + 1);
+        const radius = 12; // 点の半径
+        const hitRadius = 25; // タッチ判定の広さ
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                circles.push({
+                    id: r * cols + c,
+                    x: spacingX * (c + 1),
+                    y: spacingY * (r + 1)
+                });
+            }
+        }
+
+        // 2. 描画関数
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 線の描画（選択された点同士を結ぶ）
+            if (selectedCircles.length > 0) {
+                ctx.beginPath();
+                ctx.strokeStyle = '#00adb5';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                const firstCircle = circles[selectedCircles[0]];
+                ctx.moveTo(firstCircle.x, firstCircle.y);
+
+                for (let i = 1; i < selectedCircles.length; i++) {
+                    const c = circles[selectedCircles[i]];
+                    ctx.lineTo(c.x, c.y);
+                }
+
+                // 現在タッチしている指の場所まで線を伸ばす
+                if (isDrawing) {
+                    ctx.lineTo(currentPos.x, currentPos.y);
+                }
+                ctx.stroke();
+            }
+
+            // 点（ノード）の描画
+            circles.forEach(circle => {
+                ctx.beginPath();
+                ctx.arc(circle.x, circle.y, radius, 0, Math.PI * 2);
+                
+                if (selectedCircles.includes(circle.id)) {
+                    ctx.fillStyle = '#00adb5'; // 選択された状態の色
+                    // 外側にもう一つ円を描いてリッチに見せる
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(circle.x, circle.y, radius + 8, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(0, 173, 181, 0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = '#555555'; // 通常時の色
+                    ctx.fill();
+                }
+            });
+        }
+
+        // 3. タッチ・マウス位置の取得
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        // 4. 当たり判定（指が点に触れたか）
+        function checkCollision(pos) {
+            for (let circle of circles) {
+                const dist = Math.hypot(circle.x - pos.x, circle.y - pos.y);
+                if (dist < hitRadius) {
+                    if (!selectedCircles.includes(circle.id)) {
+                        selectedCircles.push(circle.id);
+                        // スマホのバイブレーション（対応機種のみ）
+                        if (navigator.vibrate) navigator.vibrate(20);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // 5. イベントリスナー（マウス＆スマホ両対応）
+        function startHandler(e) {
+            e.preventDefault();
+            isDrawing = true;
+            message.innerText = "パターンを入力中...";
+            selectedCircles = [];
+            currentPos = getMousePos(e);
+            checkCollision(currentPos);
+            draw();
+        }
+
+        function moveHandler(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            currentPos = getMousePos(e);
+            checkCollision(currentPos);
+            draw();
+        }
+
+        function endHandler(e) {
+            if (!isDrawing) return;
+            isDrawing = false;
+
+            // パターンの判定
+            if (JSON.stringify(selectedCircles) === JSON.stringify(CORRECT_PATTERN)) {
+                message.style.color = '#4caf50';
+                message.innerText = "ロック解除成功！";
+            } else if (selectedCircles.length > 0) {
+                message.style.color = '#f44336';
+                message.innerText = "パターンが違います";
+                // 間違えたら1秒後にリセット
+                setTimeout(() => {
+                    message.style.color = '#ffffff';
+                    message.innerText = "パターンを入力してください";
+                    selectedCircles = [];
+                    draw();
+                }, 1000);
+            }
+            draw();
+        }
+
+        // マウスイベント
+        canvas.addEventListener('mousedown', startHandler);
+        window.addEventListener('mousemove', moveHandler);
+        window.addEventListener('mouseup', endHandler);
+
+        // タッチイベント（スマホ用）
+        canvas.addEventListener('touchstart', startHandler, { passive: false });
+        window.addEventListener('touchmove', moveHandler, { passive: false });
+        window.addEventListener('touchend', endHandler);
+
+        // 初期描画
+        draw();
+    </script>
+</body>
+</html>
