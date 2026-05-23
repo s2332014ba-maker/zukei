@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>スマホ風 パターンロック</title>
+    <title>パターン登録＆ロック</title>
     <style>
         body {
             margin: 0;
@@ -17,14 +17,23 @@
             justify-content: center;
             min-height: 100vh;
             overflow: hidden;
-            touch-action: none; /* スクロールやダブルタップズームを禁止 */
+            touch-action: none;
+        }
+
+        #status {
+            font-size: 0.9rem;
+            color: #aaaaaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
         }
 
         #message {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             margin-bottom: 30px;
-            height: 24px;
+            height: 28px;
             text-align: center;
+            font-weight: bold;
         }
 
         #canvas-container {
@@ -37,26 +46,45 @@
             background-color: transparent;
             cursor: pointer;
         }
+
+        /* リセットボタン */
+        #reset-btn {
+            margin-top: 30px;
+            padding: 10px 20px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        #reset-btn:active {
+            background-color: #444;
+        }
     </style>
 </head>
 <body>
 
-    <div id="message">パターンを入力してください</div>
+    <div id="status">STEP 1: 登録</div>
+    <div id="message">新しいパターンを描いてください</div>
+    
     <div id="canvas-container">
         <canvas id="lockCanvas" width="320" height="320"></canvas>
     </div>
 
+    <button id="reset-btn" onclick="resetAll()">最初から登録し直す</button>
+
     <script>
         const canvas = document.getElementById('lockCanvas');
         const ctx = canvas.getContext('2d');
-        const message = document.getElementById('message');
+        const statusText = document.getElementById('status');
+        const messageText = document.getElementById('message');
 
-        // 正解のパターン（点のインデックス：0〜8）
-        // 0 1 2
-        // 3 4 5
-        // 6 7 8
-        // 例: 「Z」の形 (0 -> 1 -> 2 -> 4 -> 6 -> 7 -> 8)
-        const CORRECT_PATTERN = [0, 1, 2, 4, 6, 7, 8];
+        // 状態管理
+        // 'REGISTER_1' (1回目入力), 'REGISTER_2' (確認入力), 'LOCKED' (ロック中)
+        let currentState = 'REGISTER_1'; 
+        let firstInputPattern = [];  // 1回目に作られたパターン
+        let savedPattern = [];       // 確定した正解パターン
 
         const rows = 3;
         const cols = 3;
@@ -65,11 +93,11 @@
         let isDrawing = false;
         let currentPos = { x: 0, y: 0 };
 
-        // 1. 点（ノード）の配置を初期化
+        // 点の配置初期化
         const spacingX = canvas.width / (cols + 1);
         const spacingY = canvas.height / (rows + 1);
-        const radius = 12; // 点の半径
-        const hitRadius = 25; // タッチ判定の広さ
+        const radius = 12;
+        const hitRadius = 25;
 
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
@@ -81,14 +109,15 @@
             }
         }
 
-        // 2. 描画関数
-        function draw() {
+        // 描画
+        function draw(isError = false) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 線の描画（選択された点同士を結ぶ）
+            // 線の描画
             if (selectedCircles.length > 0) {
                 ctx.beginPath();
-                ctx.strokeStyle = '#00adb5';
+                // エラー時は赤、通常時はステータスに応じた色
+                ctx.strokeStyle = isError ? '#f44336' : (currentState === 'LOCKED' ? '#4caf50' : '#00adb5');
                 ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -101,65 +130,59 @@
                     ctx.lineTo(c.x, c.y);
                 }
 
-                // 現在タッチしている指の場所まで線を伸ばす
                 if (isDrawing) {
                     ctx.lineTo(currentPos.x, currentPos.y);
                 }
                 ctx.stroke();
             }
 
-            // 点（ノード）の描画
+            // 点の描画
             circles.forEach(circle => {
                 ctx.beginPath();
                 ctx.arc(circle.x, circle.y, radius, 0, Math.PI * 2);
                 
                 if (selectedCircles.includes(circle.id)) {
-                    ctx.fillStyle = '#00adb5'; // 選択された状態の色
-                    // 外側にもう一つ円を描いてリッチに見せる
-                    ctx.stroke();
+                    ctx.fillStyle = isError ? '#f44336' : (currentState === 'LOCKED' ? '#4caf50' : '#00adb5');
+                    ctx.fill();
+                    
+                    // 外枠
                     ctx.beginPath();
                     ctx.arc(circle.x, circle.y, radius + 8, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'rgba(0, 173, 181, 0.3)';
+                    ctx.strokeStyle = isError ? 'rgba(244, 67, 54, 0.3)' : 'rgba(0, 173, 181, 0.3)';
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 } else {
-                    ctx.fillStyle = '#555555'; // 通常時の色
+                    ctx.fillStyle = '#555555';
                     ctx.fill();
                 }
             });
         }
 
-        // 3. タッチ・マウス位置の取得
         function getMousePos(e) {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return {
-                x: clientX - rect.left,
-                y: clientY - rect.top
-            };
+            return { x: clientX - rect.left, y: clientY - rect.top };
         }
 
-        // 4. 当たり判定（指が点に触れたか）
         function checkCollision(pos) {
             for (let circle of circles) {
                 const dist = Math.hypot(circle.x - pos.x, circle.y - pos.y);
                 if (dist < hitRadius) {
                     if (!selectedCircles.includes(circle.id)) {
                         selectedCircles.push(circle.id);
-                        // スマホのバイブレーション（対応機種のみ）
-                        if (navigator.vibrate) navigator.vibrate(20);
+                        if (navigator.vibrate) navigator.vibrate(15);
                     }
                     break;
                 }
             }
         }
 
-        // 5. イベントリスナー（マウス＆スマホ両対応）
+        // イベントハンドラ
         function startHandler(e) {
             e.preventDefault();
+            if (messageText.style.color === 'rgb(244, 67, 54)') return; // エラー表示中の入力を無視
             isDrawing = true;
-            message.innerText = "パターンを入力中...";
             selectedCircles = [];
             currentPos = getMousePos(e);
             checkCollision(currentPos);
@@ -178,35 +201,94 @@
             if (!isDrawing) return;
             isDrawing = false;
 
-            // パターンの判定
-            if (JSON.stringify(selectedCircles) === JSON.stringify(CORRECT_PATTERN)) {
-                message.style.color = '#4caf50';
-                message.innerText = "ロック解除成功！";
-            } else if (selectedCircles.length > 0) {
-                message.style.color = '#f44336';
-                message.innerText = "パターンが違います";
-                // 間違えたら1秒後にリセット
-                setTimeout(() => {
-                    message.style.color = '#ffffff';
-                    message.innerText = "パターンを入力してください";
-                    selectedCircles = [];
-                    draw();
-                }, 1000);
+            if (selectedCircles.length < 3) {
+                // 点が少なすぎる場合
+                showError("3つ以上の点をつないでください");
+                return;
             }
+
+            // 状態に応じた処理
+            if (currentState === 'REGISTER_1') {
+                // 1回目の登録
+                firstInputPattern = [...selectedCircles];
+                currentState = 'REGISTER_2';
+                statusText.innerText = "STEP 2: 確認";
+                messageText.innerText = "確認のため、もう一度描いてください";
+                selectedCircles = [];
+                
+            } else if (currentState === 'REGISTER_2') {
+                // 2回目の確認
+                if (JSON.stringify(selectedCircles) === JSON.stringify(firstInputPattern)) {
+                    savedPattern = [...selectedCircles];
+                    currentState = 'LOCKED';
+                    statusText.innerText = "STATUS: ロック中";
+                    messageText.style.color = '#4caf50';
+                    messageText.innerText = "登録完了！ロックしました";
+                    setTimeout(() => {
+                        messageText.style.color = '#ffffff';
+                        messageText.innerText = "パターンを入力して解除";
+                    }, 1500);
+                } else {
+                    showError("パターンが一致しません。最初からやり直し");
+                    currentState = 'REGISTER_1';
+                    statusText.innerText = "STEP 1: 登録";
+                }
+                selectedCircles = [];
+                
+            } else if (currentState === 'LOCKED') {
+                // ロック解除モード
+                if (JSON.stringify(selectedCircles) === JSON.stringify(savedPattern)) {
+                    messageText.style.color = '#4caf50';
+                    messageText.innerText = "ロック解除成功！";
+                } else {
+                    showError("パターンが違います");
+                }
+                selectedCircles = [];
+            }
+            
             draw();
         }
 
-        // マウスイベント
+        // エラー表示の一時処理
+        function showError(msg) {
+            messageText.style.color = '#f44336';
+            messageText.innerText = msg;
+            draw(true); // エラーカラー(赤)で描画
+            
+            setTimeout(() => {
+                messageText.style.color = '#ffffff';
+                if (currentState === 'REGISTER_1') {
+                    messageText.innerText = "新しいパターンを描いてください";
+                } else if (currentState === 'REGISTER_2') {
+                    messageText.innerText = "確認のため、もう一度描いてください";
+                } else if (currentState === 'LOCKED') {
+                    messageText.innerText = "パターンを入力して解除";
+                }
+                selectedCircles = [];
+                draw();
+            }, 1500);
+        }
+
+        // 最初からリセット
+        function resetAll() {
+            currentState = 'REGISTER_1';
+            firstInputPattern = [];
+            savedPattern = [];
+            selectedCircles = [];
+            statusText.innerText = "STEP 1: 登録";
+            messageText.style.color = '#ffffff';
+            messageText.innerText = "新しいパターンを描いてください";
+            draw();
+        }
+
+        // イベント登録
         canvas.addEventListener('mousedown', startHandler);
         window.addEventListener('mousemove', moveHandler);
         window.addEventListener('mouseup', endHandler);
-
-        // タッチイベント（スマホ用）
         canvas.addEventListener('touchstart', startHandler, { passive: false });
         window.addEventListener('touchmove', moveHandler, { passive: false });
         window.addEventListener('touchend', endHandler);
 
-        // 初期描画
         draw();
     </script>
 </body>
