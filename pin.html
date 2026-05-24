@@ -117,13 +117,14 @@
 <body>
 
     <div id="status">STEP 1: 登録</div>
-    <div id="message">新しいパスコード（4桁）を入力</div>
+    <div id="message">新しいパスコードを入力</div>
 
     <div class="dots-container">
         <div class="dot" id="dot0"></div>
         <div class="dot" id="dot1"></div>
         <div class="dot" id="dot2"></div>
         <div class="dot" id="dot3"></div>
+        <div class="dot" id="dot4"></div>
     </div>
 
     <div class="keypad">
@@ -156,7 +157,7 @@
         let firstInputPassword = '';
         let savedPassword = '';
 
-        const MAX_LENGTH = 4; // 桁数（ここを6に変えれば6桁化も可能 ※HTMLのdotも増やす必要あり）
+        const MAX_LENGTH = 5; // 桁数（ここを6に変えれば6桁化も可能 ※HTMLのdotも増やす必要あり）
 
         // 数字が押されたとき
         function pressKey(num) {
@@ -245,7 +246,7 @@
             setTimeout(() => {
                 messageText.style.color = '#ffffff';
                 if (currentState === 'REGISTER_1') {
-                    messageText.innerText = "新しいパスコード（4桁）を入力";
+                    messageText.innerText = "新しいパスコードを入力";
                 } else if (currentState === 'REGISTER_2') {
                     messageText.innerText = "確認のためもう一度入力";
                 } else if (currentState === 'LOCKED') {
@@ -262,7 +263,7 @@
             savedPassword = '';
             statusText.innerText = "STEP 1: 登録";
             messageText.style.color = '#ffffff';
-            messageText.innerText = "新しいパスコード（4桁）を入力";
+            messageText.innerText = "新しいパスコードを入力";
             updateDots();
         }
     </script>
