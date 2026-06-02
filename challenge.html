@@ -103,6 +103,19 @@
             max-width: 90%;
             word-break: break-all;
         }
+        
+        /* メニューに戻るボタンのスタイル（他画面と統一） */
+        .back-btn {
+            display: inline-block;
+            margin-top: 25px;
+            color: #888888;
+            font-size: 14px;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back-btn:hover {
+            color: #ffffff;
+        }
     </style>
 </head>
 <body>
@@ -123,7 +136,11 @@
         <button id="actionBtn" onclick="switchMode()" disabled>認証モードへ移行</button>
     </div>
 
-    <div id="debug-info">準備中...</div>
+    <div>
+        <a href="index.html" class="back-btn">メニューに戻る</a>
+    </div>
+
+    <div id="debug-info" style="margin-top: 25px;">準備中...</div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
