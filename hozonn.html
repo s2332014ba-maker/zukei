@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>一筆書き・画像保存システム</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0d0d12;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px 10px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+            touch-action: none; /* スマホのスクロールやピンチズームを完全に禁止 */
+        }
+        #system-status {
+            font-size: 20px;
+            color: #00e5ff;
+            font-weight: bold;
+            margin: 10px 0;
+            height: 35px;
+        }
+        #result-display {
+            font-size: 15px;
+            color: #aaa;
+            margin: 5px 0 15px 0;
+            height: 40px;
+            padding: 0 10px;
+        }
+        #canvas-container {
+            margin: 15px auto;
+            width: 250px;
+            height: 250px;
+        }
+        canvas {
+            border: 2px solid #333;
+            background: #ffffff;
+            cursor: crosshair;
+            box-shadow: 0 4px 25px rgba(0, 229, 255, 0.15);
+            border-radius: 16px;
+            display: block;
+        }
+        .controls {
+            margin: 15px 0;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            border: none;
+            background: #007bff;
+            color: white;
+            margin: 5px;
+            transition: background 0.2s;
+        }
+        button:disabled {
+            background: #222;
+            color: #555;
+            cursor: not-allowed;
+            border: 1px solid #333;
+        }
+        /* クリアボタンのスタイル */
+        button.clear-btn {
+            background: #454552;
+            color: #ffca28;
+            border: 1px solid #ffca28;
+        }
+        /* 保存ボタンのスタイル */
+        button.save-btn {
+            background: #1b4d3e;
+            color: #2ed573;
+            border: 1px solid #2ed573;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            margin-top: 25px;
+            color: #888888;
+            font-size: 14px;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back-btn:hover {
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="system-status">自由お絵描きモード</div>
+    <div id="result-display">キャンバスに図形を描いてね。いつでも画像として保存できます。</div>
+    
+    <div id="canvas-container">
+        <canvas id="drawArea" width="224" height="224" style="width: 250px; height: 250px;"></canvas>
+    </div>
+
+    <div class="controls">
+        <button id="clearBtn" class="clear-btn" onclick="clearCanvas()">キャンバスをクリア</button>
+        <button id="saveBtn" class="save-btn" onclick="saveCanvasAsImage()">画像を保存</button>
+    </div>
+
+    <div>
+        <a href="index.html" class="back-btn">メニューに戻る</a>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawArea');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        // --- 1. キャンバスの初期化 ---
+        function initCanvas() {
+            clearCanvas();
+            
+            // お絵描き設定（元の描画条件を完全に維持）
+            ctx.lineWidth = 12;          
+            ctx.lineCap = 'round';       
+            ctx.lineJoin = 'round';      
+            ctx.shadowBlur = 1;          
+            ctx.shadowColor = '#000000'; 
+            ctx.strokeStyle = '#000000'; 
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // --- 2. お絵描き処理 ---
+        function getEventPos(e) {
+            const MathRect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const x = (clientX - MathRect.left) * (canvas.width / MathRect.width);
+            const y = (clientY - MathRect.top) * (canvas.height / MathRect.height);
+            return { x, y };
+        }
+
+        function startDrawing(e) {
+            e.preventDefault();
+            drawing = true;
+            ctx.beginPath();
+            const pos = getEventPos(e);
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        function moveDrawing(e) {
+            if (!drawing) return;
+            e.preventDefault();
+            const pos = getEventPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        function endDrawing(e) {
+            if (drawing) {
+                e.preventDefault();
+                drawing = false;
+                if (navigator.vibrate) navigator.vibrate(50); // 描き終わりの軽い振動
+            }
+        }
+
+        // --- 3. 画像保存処理 ---
+        function saveCanvasAsImage() {
+            // キャンバスの内容をDataURL（PNG形式）に変換
+            const imageURL = canvas.toDataURL("image/png");
+            
+            // 擬似的なダウンロードリンクを作成して実行
+            const downloadLink = document.createElement("a");
+            
+            // ファイル名にタイムスタンプを付与
+            const now = new Date();
+            const timestamp = now.getFullYear() +
+                String(now.getMonth() + 1).padStart(2, '0') +
+                String(now.getDate()).padStart(2, '0') + "_" +
+                String(now.getHours()).padStart(2, '0') +
+                String(now.getMinutes()).padStart(2, '0') +
+                String(now.getSeconds()).padStart(2, '0');
+            
+            downloadLink.download = `my_stroke_${timestamp}.png`;
+            downloadLink.href = imageURL;
+            
+            // リンクをクリックさせて保存を実行
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+
+        // イベントリスナーの登録
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', moveDrawing);
+        window.addEventListener('mouseup', endDrawing);
+
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', moveDrawing, { decline: false });
+        window.addEventListener('touchend', endDrawing);
+
+        // 起動時にキャンバスを初期化
+        initCanvas();
+    </script>
+</body>
+</html>
