@@ -18,11 +18,11 @@
             touch-action: none; /* スマホのスクロールやピンチズームを完全に禁止 */
         }
         
-        /* ★【ここを変更！】メニューとデバッグ情報をまとめて上に引き上げるためのコンテナ */
+        /* メニューとデバッグ情報をまとめて上に引き上げるためのコンテナ */
         .bottom-group-container {
             position: relative;
-            top: -25px;             /* 💡ここを「-35px」などにすると、2つまとまったままさらに上に上がります */
-            margin-bottom: -25px;   /* 位置を上げた分、全体の高さを相殺する設定 */
+            top: -25px;             
+            margin-bottom: -25px;   
         }
 
         /* デバッグ・ラベル一覧情報のスタイル */
@@ -35,7 +35,7 @@
             border-radius: 6px;
             max-width: 90%;
             word-break: break-all;
-            margin-top: 15px;       /* メニューに戻るボタンとの間の隙間 */
+            margin-top: 15px;       
             border: 1px solid #222;
         }
 
@@ -54,7 +54,7 @@
             padding: 0 10px;
         }
         #pin-preview {
-            font-size: 11px;
+            font-size: 13px;
             color: #ffca28;
             background: #1e1e24;
             padding: 8px;
@@ -84,6 +84,15 @@
             border-radius: 16px;
             display: block;
         }
+        
+        /* ★描画禁止中のキャンバスの見た目を少し暗く（無効化っぽく）する演出 */
+        canvas.locked {
+            background: #e0e0e0 !important;
+            border-color: #555;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
         .controls {
             margin: 15px 0;
         }
@@ -135,7 +144,7 @@
             height: 18px;
             fill: none;
             stroke: #00e5ff;
-            stroke-width: 2.2; /* 線画の太さを揃えてスタイリッシュに */
+            stroke-width: 2.2; 
             stroke-linecap: round;
             stroke-linejoin: round;
         }
@@ -226,7 +235,6 @@
                 updatePINDisplay();
                 resetTimerDisplay();
                 
-                // 記号を画像(SVG)に置き換えて完璧にサイズを統一して出力
                 const formattedLabels = labels.map(label => {
                     const icon = svgIcons[label] || label;
                     return `<span class="label-badge">${icon}</span>`;
@@ -259,7 +267,8 @@
         }
 
         function startDrawing(e) {
-            if (systemLocked) return;
+            // ★システムロック中、または4回登録が終わってロックされているときは描かせない
+            if (systemLocked || canvas.classList.contains('locked')) return;
             e.preventDefault();
 
             if (!isTiming) {
@@ -286,7 +295,13 @@
                 drawing = false;
                 
                 await processStroke();
-                clearCanvas();
+                
+                // ★4つの登録が終わった時はキャンバスをクリアせず、描いた線を残したままロック状態にする
+                if (!isAuthMode && savedPIN.length === 4) {
+                    canvas.classList.add('locked'); // 見た目をグレーにする
+                } else {
+                    clearCanvas();
+                }
             }
         }
 
@@ -349,6 +364,8 @@
         }
 
         function restartInputOnly() {
+            canvas.classList.remove('locked'); // ★キャンバスのロック解除
+
             if (isAuthMode) {
                 inputCount = 0;
                 hasFailedTransition = false;
@@ -482,6 +499,7 @@
 
         function switchMode() {
             resetTimerDisplay(); 
+            canvas.classList.remove('locked'); // ★モード切り替え時はロックを解除してクリアする
 
             if (!isAuthMode) {
                 isAuthMode = true;
