@@ -267,7 +267,7 @@
         }
 
         function startDrawing(e) {
-            // ★システムロック中、または4回登録が終わってロックされているときは描かせない
+            // ★システムロック中、またはロッククラスが付与されているときは描かせない
             if (systemLocked || canvas.classList.contains('locked')) return;
             e.preventDefault();
 
@@ -296,12 +296,9 @@
                 
                 await processStroke();
                 
-                // ★4つの登録が終わった時はキャンバスをクリアせず、描いた線を残したままロック状態にする
-                if (!isAuthMode && savedPIN.length === 4) {
-                    canvas.classList.add('locked'); // 見た目をグレーにする
-                } else {
-                    clearCanvas();
-                }
+                // ★4つ目の登録時も含め、常にキャンバスをクリア。
+                // 登録完了時や認証終了時（再描画禁止時）は見た目のみ変更 or そのままクリア
+                clearCanvas();
             }
         }
 
@@ -443,6 +440,9 @@
 
                         resultDisplay.innerHTML = `4つのPIN登録が完了！[最後: ${topClass}(${topClassPercent}%)] 「認証モードへ移行」を押してください。`;
                         document.getElementById('actionBtn').disabled = false;
+                        
+                        // ★4つの登録が終わった時はキャンバスをロック状態にする（endDrawingで白くクリアされます）
+                        canvas.classList.add('locked');
                     }
                 }
             } 
@@ -463,11 +463,14 @@
                     stopTimer(); 
                     const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
 
+                    // ★認証終了時（4回描き終わった時点）で、成功・失敗問わず一律キャンバスを即時ロック
+                    canvas.classList.add('locked');
+
                     if (!hasFailedTransition) {
                         systemLocked = true; 
-                        statusDisplay.innerHTML = "🔓 認証成功 / ACCESS GRANTED";
+                        statusDisplay.innerHTML = "認証成功 / ACCESS GRANTED";
                         statusDisplay.style.color = "#4caf50";
-                        resultDisplay.innerHTML = `4回目: ${topClass}(${topClassPercent}%) - すべてのPINが一致！`;
+                        resultDisplay.innerHTML = `すべてのPINが一致！`;
                         resultDisplay.style.color = "#4caf50";
                         
                         timerDisplay.innerHTML = `突破タイム: ${finalTime} 秒`;
@@ -475,15 +478,16 @@
 
                         if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
                     } else {
+                        // 次の再挑戦のために一旦リセットはするが、描画は禁止（リスタートボタンを押すまで locked が維持されます）
                         inputCount = 0;
                         hasFailedTransition = false; 
                         
-                        statusDisplay.innerHTML = "🔒 認証失敗 / ACCESS DENIED";
+                        statusDisplay.innerHTML = "認証失敗 / ACCESS DENIED";
                         statusDisplay.style.color = "#f44336";
-                        resultDisplay.innerHTML = `判定: ${topClass}(${topClassPercent}%) ※正解は「${requiredClass}」でした。1回目からやり直してください。`;
+                        resultDisplay.innerHTML = `リスタートか登録からやり直してください`;
                         resultDisplay.style.color = "#f44336";
                         
-                        timerDisplay.innerHTML = `失敗タイム: ${finalTime} 秒 (リセットされました)`;
+                        timerDisplay.innerHTML = `失敗タイム: ${finalTime} 秒 `;
                         timerDisplay.style.color = "#f44336";
 
                         if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
@@ -491,7 +495,7 @@
                     }
                 } else {
                     let progressDots = "* ".repeat(inputCount) + "_ ".repeat(4 - inputCount);
-                    resultDisplay.innerHTML = `検知: ${topClass}(${topClassPercent}%) ➔ 次の図形を描いてください。 [進行度: ${progressDots}]`;
+                    resultDisplay.innerHTML = `次の図形を描いてください。 [進行度: ${progressDots}]`;
                     resultDisplay.style.color = "#ffca28";
                 }
             }
@@ -499,7 +503,7 @@
 
         function switchMode() {
             resetTimerDisplay(); 
-            canvas.classList.remove('locked'); // ★モード切り替え時はロックを解除してクリアする
+            canvas.classList.remove('locked'); // ★モード切り替え時はロックを解除
 
             if (!isAuthMode) {
                 isAuthMode = true;
