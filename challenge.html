@@ -17,6 +17,28 @@
             overflow: hidden;
             touch-action: none; /* スマホのスクロールやピンチズームを完全に禁止 */
         }
+        
+        /* ★【ここを変更！】メニューとデバッグ情報をまとめて上に引き上げるためのコンテナ */
+        .bottom-group-container {
+            position: relative;
+            top: -25px;             /* 💡ここを「-35px」などにすると、2つまとまったままさらに上に上がります */
+            margin-bottom: -25px;   /* 位置を上げた分、全体の高さを相殺する設定 */
+        }
+
+        /* デバッグ・ラベル一覧情報のスタイル */
+        #debug-info {
+            font-size: 11px;
+            color: #bbb;
+            background: #111;
+            padding: 8px;
+            display: inline-block;
+            border-radius: 6px;
+            max-width: 90%;
+            word-break: break-all;
+            margin-top: 15px;       /* メニューに戻るボタンとの間の隙間 */
+            border: 1px solid #222;
+        }
+
         #system-status {
             font-size: 20px;
             color: #00e5ff;
@@ -93,22 +115,6 @@
             color: #ffd54f;
             border: 1px solid #ffd54f;
         }
-        #debug-info {
-            font-size: 11px;
-            color: #bbb;
-            background: #111;
-            padding: 8px;
-            display: inline-block;
-            border-radius: 6px;
-            max-width: 90%;
-            word-break: break-all;
-
-            position: relative;     
-            top: -15px;             /* 💡もっと上にあげたい時は、数値を「-25px」「-30px」のように大きくします */
-            margin-bottom: -15px;   /* 💡上の「top」と同じ数値（マイナス値）に揃えてください */
-    
-            border: 1px solid #222;
-        }
         
         /* ラベルの記号を等幅・等サイズにするスタイル */
         .label-badge {
@@ -125,8 +131,8 @@
         }
         /* SVGアイコン自体のサイズを18pxに強制統一 */
         .label-badge svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             fill: none;
             stroke: #00e5ff;
             stroke-width: 2.2; /* 線画の太さを揃えてスタイリッシュに */
@@ -166,11 +172,12 @@
         <button id="actionBtn" onclick="switchMode()" disabled>認証モードへ移行</button>
     </div>
 
-    <div>
-        <a href="index.html" class="back-btn">メニューに戻る</a>
+    <div class="bottom-group-container">
+        <div>
+            <a href="index.html" class="back-btn">メニューに戻る</a>
+        </div>
+        <div id="debug-info">準備中...</div>
     </div>
-
-    <div id="debug-info" style="margin-top: 25px;">準備中...</div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
@@ -200,7 +207,6 @@
         const debugInfo = document.getElementById('debug-info');
 
         // AIモデルの出す文字に対応する【完全等幅・美麗SVG】図形データ
-        // すべての図形を「∞」のスケール（上下左右に数ピクセルのマージン）に統一して微縮小しました
         const svgIcons = {
             "〇": `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/></svg>`,
             "△": `<svg viewBox="0 0 24 24"><polygon points="12,4.5 4,19.5 20,19.5"/></svg>`,
