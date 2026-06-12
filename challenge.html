@@ -95,7 +95,7 @@
         }
         #debug-info {
             font-size: 11px;
-            color: #666;
+            color: #bbb;
             background: #111;
             padding: 8px;
             display: inline-block;
@@ -104,7 +104,31 @@
             word-break: break-all;
         }
         
-        /* メニューに戻るボタンのスタイル（他画面と統一） */
+        /* ラベルの記号を等幅・等サイズにするスタイル */
+        .label-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: #1a1a24;
+            border-radius: 6px;
+            margin: 0 3px;
+            border: 1px solid #333;
+            vertical-align: middle;
+        }
+        /* SVGアイコン自体のサイズを18pxに強制統一 */
+        .label-badge svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: #00e5ff;
+            stroke-width: 2.2; /* 線画の太さを揃えてスタイリッシュに */
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        
+        /* メニューに戻るボタンのスタイル */
         .back-btn {
             display: inline-block;
             margin-top: 25px;
@@ -132,7 +156,7 @@
 
     <div class="controls">
         <button id="viewBtn" class="verify-btn" onclick="togglePINVisibility()" disabled> 登録PINを確認</button>
-        <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()" disabled>リスタート</button>
+        <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
         <button id="actionBtn" onclick="switchMode()" disabled>認証モードへ移行</button>
     </div>
 
@@ -149,12 +173,12 @@
         const URL = "https://teachablemachine.withgoogle.com/models/INFEA24FA/";
         let model, labels = [];
         
-        let savedPIN = [];           // 事前に文字登録した4つの正解。リスタート時も維持されます
-        let inputCount = 0;          // 現在何回描いたか
-        let isAuthMode = false;      // モード切り替えフラグ
-        let systemLocked = false;     // 認証成功後の操作ロック
-        let isPINVisible = false;    // 答えを表示しているかどうかのフラグ
-        let hasFailedTransition = false; // 途中で間違えたかどうかの内部フラグ
+        let savedPIN = [];           
+        let inputCount = 0;          
+        let isAuthMode = false;      
+        let systemLocked = false;     
+        let isPINVisible = false;    
+        let hasFailedTransition = false; 
 
         // --- タイマー用変数 ---
         let startTime = null;
@@ -169,6 +193,16 @@
         const timerDisplay = document.getElementById('timer-display');
         const debugInfo = document.getElementById('debug-info');
 
+        // AIモデルの出す文字に対応する【完全等幅・美麗SVG】図形データ
+        // すべての図形を「∞」のスケール（上下左右に数ピクセルのマージン）に統一して微縮小しました
+        const svgIcons = {
+            "〇": `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/></svg>`,
+            "△": `<svg viewBox="0 0 24 24"><polygon points="12,4.5 4,19.5 20,19.5"/></svg>`,
+            "□": `<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="1"/></svg>`,
+            "⛥": `<svg viewBox="0 0 24 24"><path d="M12,3.5 L17.85,21.5 L3.34,10.38 L20.66,10.38 L6.15,21.5 Z"/></svg>`,
+            "∞": `<svg viewBox="0 0 24 24"><path d="M12,12 C14,10 15.2,7.2 17.2,7.2 A4.8,4.8 0 1,1 17.2,16.8 C15.2,16.8 14,14 12,12 C10,14 8.8,16.8 6.8,16.8 A4.8,4.8 0 1,1 6.8,7.2 C8.8,7.2 10,10 12,12 Z"/></svg>`
+        };
+
         // --- 1. 初期化 ---
         async function initAI() {
             try {
@@ -180,7 +214,13 @@
                 updatePINDisplay();
                 resetTimerDisplay();
                 
-                debugInfo.innerHTML = "対応モデルラベル: " + labels.join(", ");
+                // 記号を画像(SVG)に置き換えて完璧にサイズを統一して出力
+                const formattedLabels = labels.map(label => {
+                    const icon = svgIcons[label] || label;
+                    return `<span class="label-badge">${icon}</span>`;
+                }).join("");
+                
+                debugInfo.innerHTML = "対応モデルラベル: " + formattedLabels;
                 clearCanvas();
             } catch (e) {
                 statusDisplay.innerHTML = "❌ エラー: ロード失敗";
@@ -188,10 +228,12 @@
         }
 
         // --- 2. お絵描き設定 ---
-        ctx.lineWidth = 14; 
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 12;          
+        ctx.lineCap = 'round';       
+        ctx.lineJoin = 'round';      
+        ctx.shadowBlur = 1;          
+        ctx.shadowColor = '#000000'; 
+        ctx.strokeStyle = '#000000'; 
         let drawing = false;
 
         function getEventPos(e) {
@@ -208,7 +250,6 @@
             if (systemLocked) return;
             e.preventDefault();
 
-            // 描き始めのタイミングでタイマーが動いていなければスタート
             if (!isTiming) {
                 startTimer();
             }
@@ -227,7 +268,6 @@
             ctx.stroke();
         }
 
-        // 離したら自動読み込み ＆ 自動消去
         async function endDrawing(e) {
             if (drawing) {
                 e.preventDefault();
@@ -243,7 +283,6 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // --- タイマー制御用関数 ---
         function startTimer() {
             isTiming = true;
             startTime = performance.now();
@@ -267,7 +306,6 @@
             timerDisplay.style.color = "#00ff66";
         }
 
-        // --- 3. 答えの表示/非表示切り替え ---
         function togglePINVisibility() {
             if (savedPIN.length === 0) return;
             isPINVisible = !isPINVisible; 
@@ -298,28 +336,43 @@
             pinPreview.innerHTML = text;
         }
 
-        // --- 4. 【新機能】登録データを残したまま1回目の入力に戻す処理 ---
         function restartInputOnly() {
-            if (!isAuthMode) return; // 認証モード以外では動作させない
-            
-            // 各種カウンターとフラグのみ初期化（savedPINは触らない）
-            inputCount = 0;
-            hasFailedTransition = false;
-            systemLocked = false; // 突破後のロックも解除する
+            if (isAuthMode) {
+                inputCount = 0;
+                hasFailedTransition = false;
+                systemLocked = false;
 
-            // タイマーを初期化
-            resetTimerDisplay();
+                resetTimerDisplay();
 
-            statusDisplay.innerHTML = " PIN認証モード実行中 ";
-            statusDisplay.style.color = "#ffca28";
-            resultDisplay.innerHTML = "登録データを維持してリスタートしました。1回目から入力してください。 [進行度: _ _ _ _]";
-            resultDisplay.style.color = "#aaa";
+                statusDisplay.innerHTML = " PIN認証モード実行中 ";
+                statusDisplay.style.color = "#ffca28";
+                resultDisplay.innerHTML = "登録データを維持してリスタートしました。1回目から入力してください。 [進行度: _ _ _ _]";
+                resultDisplay.style.color = "#aaa";
+            } else {
+                savedPIN = [];
+                inputCount = 0;
+                hasFailedTransition = false;
+                isPINVisible = false;
+
+                resetTimerDisplay();
+
+                statusDisplay.innerHTML = " PINコード登録ステップ ";
+                statusDisplay.style.color = "#00e5ff";
+                resultDisplay.innerHTML = "一筆書きで図形を描いてね。離すと自動で登録されます (0/4)";
+                resultDisplay.style.color = "#aaa";
+                
+                document.getElementById('viewBtn').innerText = "登録PINを確認";
+                document.getElementById('viewBtn').disabled = true;
+                document.getElementById('actionBtn').innerText = "認証モードへ移行";
+                document.getElementById('actionBtn').disabled = true;
+                
+                updatePINDisplay();
+            }
             
             clearCanvas();
             if (navigator.vibrate) navigator.vibrate(100);
         }
 
-        // --- 5. 一筆書きの読み込みと判定 ---
         async function processStroke() {
             if (!model) return;
 
@@ -329,39 +382,46 @@
 
             let debugText = "";
             prediction.forEach(p => {
-                debugText += `${p.className}: ${Math.round(p.probability * 100)}% | `;
+                let probPercent = Math.round(p.probability * 100);
+                debugText += `${p.className}: ${probPercent}% | `;
                 if (p.probability > topProb) {
                     topProb = p.probability;
                     topClass = p.className;
                 }
             });
-            debugInfo.innerHTML = debugText;
+            
+            const formattedLabels = labels.map(label => {
+                const icon = svgIcons[label] || label;
+                return `<span class="label-badge">${icon}</span>`;
+            }).join("");
+            debugInfo.innerHTML = "対応モデルラベル: " + formattedLabels + "<br>" + debugText;
 
-            // --- モード1: 登録フェーズ ---
+            let topClassPercent = Math.round(topProb * 100);
+
             if (!isAuthMode) {
                 if (savedPIN.length < 4) {
                     savedPIN.push(topClass);
                     updatePINDisplay();
-                    resultDisplay.innerHTML = `「${topClass}」を登録しました (${savedPIN.length}/4)`;
+                    resultDisplay.innerHTML = `「${topClass}」(${topClassPercent}%) を登録しました (${savedPIN.length}/4)`;
                     if (navigator.vibrate) navigator.vibrate(50);
 
                     document.getElementById('viewBtn').disabled = false;
 
                     if (savedPIN.length === 4) {
-                        stopTimer(); // 4回登録完了でタイマー停止
+                        stopTimer(); 
                         const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
                         timerDisplay.innerHTML = `登録タイム: ${finalTime} 秒`;
 
-                        resultDisplay.innerHTML = "4つのPIN登録が完了！「認証モードへ移行」を押してください。";
+                        resultDisplay.innerHTML = `4つのPIN登録が完了！[最後: ${topClass}(${topClassPercent}%)] 「認証モードへ移行」を押してください。`;
                         document.getElementById('actionBtn').disabled = false;
                     }
                 }
             } 
-            // --- モード2: PIN認証フェーズ ---
             else {
                 const requiredClass = savedPIN[inputCount];
                 const targetPredict = prediction.find(p => p.className === requiredClass);
                 const targetProb = targetPredict ? targetPredict.probability : 0;
+                const targetProbPercent = Math.round(targetProb * 100);
 
                 if (targetProb < 0.85) {
                     hasFailedTransition = true;
@@ -370,17 +430,15 @@
                 inputCount++; 
                 if (navigator.vibrate) navigator.vibrate(60);
 
-                // 4回入力完了時の一括判定
                 if (inputCount === 4) {
-                    stopTimer(); // 4回入力完了でタイマーを停止
+                    stopTimer(); 
                     const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
 
                     if (!hasFailedTransition) {
-                        // 【成功】
                         systemLocked = true; 
                         statusDisplay.innerHTML = "🔓 認証成功 / ACCESS GRANTED";
                         statusDisplay.style.color = "#4caf50";
-                        resultDisplay.innerHTML = `すべてのPINが一致！システムを突破しました！`;
+                        resultDisplay.innerHTML = `4回目: ${topClass}(${topClassPercent}%) - すべてのPINが一致！`;
                         resultDisplay.style.color = "#4caf50";
                         
                         timerDisplay.innerHTML = `突破タイム: ${finalTime} 秒`;
@@ -388,35 +446,30 @@
 
                         if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
                     } else {
-                        // 【失敗】自動で1回目に巻き戻す
                         inputCount = 0;
                         hasFailedTransition = false; 
                         
                         statusDisplay.innerHTML = "🔒 認証失敗 / ACCESS DENIED";
                         statusDisplay.style.color = "#f44336";
-                        resultDisplay.innerHTML = "PINが不一致です。1回目からやり直してください。";
+                        resultDisplay.innerHTML = `判定: ${topClass}(${topClassPercent}%) ※正解は「${requiredClass}」でした。1回目からやり直してください。`;
                         resultDisplay.style.color = "#f44336";
                         
                         timerDisplay.innerHTML = `失敗タイム: ${finalTime} 秒 (リセットされました)`;
                         timerDisplay.style.color = "#f44336";
 
                         if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
-                        
-                        // 失敗時は即時次の入力のためにタイマーの表示のみ残して状態をリセット
                         isTiming = false; 
                     }
                 } else {
-                    // まだ入力の途中
                     let progressDots = "* ".repeat(inputCount) + "_ ".repeat(4 - inputCount);
-                    resultDisplay.innerHTML = `入力を検知しました。次の図形を描してください。 [進行度: ${progressDots}]`;
+                    resultDisplay.innerHTML = `検知: ${topClass}(${topClassPercent}%) ➔ 次の図形を描いてください。 [進行度: ${progressDots}]`;
                     resultDisplay.style.color = "#ffca28";
                 }
             }
         }
 
-        // --- 6. モード切り替えと完全リセット（手動） ---
         function switchMode() {
-            resetTimerDisplay(); // モード切り替え時にタイマーを完全リセット
+            resetTimerDisplay(); 
 
             if (!isAuthMode) {
                 isAuthMode = true;
@@ -426,7 +479,6 @@
                 statusDisplay.style.color = "#ffca28";
                 resultDisplay.innerHTML = "登録した順番通りに、一筆書きで4回連続入力してください。 [進行度: _ _ _ _]";
                 document.getElementById('actionBtn').innerText = "登録からやり直す";
-                document.getElementById('keepRestartBtn').disabled = false; // リスタートボタンを使えるようにする
             } else {
                 isAuthMode = false;
                 systemLocked = false;
@@ -438,9 +490,8 @@
                 statusDisplay.style.color = "#00e5ff";
                 resultDisplay.innerHTML = "一筆書きで図形を描いてね。離すと自動で登録されます (0/4)";
                 resultDisplay.style.color = "#aaa";
-                document.getElementById('viewBtn').innerText = "👁 登録PINを確認";
+                document.getElementById('viewBtn').innerText = "登録PINを確認";
                 document.getElementById('viewBtn').disabled = true;
-                document.getElementById('keepRestartBtn').disabled = true; // ボタン無効化
                 updatePINDisplay();
                 document.getElementById('actionBtn').innerText = "認証モードへ移行";
                 document.getElementById('actionBtn').disabled = true;
@@ -448,7 +499,6 @@
             clearCanvas();
         }
 
-        // イベントリスナー
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', moveDrawing);
         window.addEventListener('mouseup', endDrawing);
