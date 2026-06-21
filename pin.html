@@ -201,7 +201,6 @@
         const actionBtn = document.getElementById('actionBtn');
         
         let isAuthMode = false;
-        let systemLocked = false;
         let currentInput = '';
         let savedPassword = '';
 
@@ -238,7 +237,7 @@
 
         // 数字が押されたとき
         function pressKey(num) {
-            if (currentInput.length >= MAX_LENGTH || keypad.classList.contains('locked') || systemLocked) return;
+            if (currentInput.length >= MAX_LENGTH || keypad.classList.contains('locked')) return;
             if (messageText.style.color === 'rgb(244, 67, 54)') return; 
             
             // 最初の1文字目が押されたらタイマーをスタート
@@ -266,7 +265,7 @@
 
         // 「削除」が押されたとき
         function pressDelete() {
-            if (keypad.classList.contains('locked') || systemLocked) return;
+            if (keypad.classList.contains('locked')) return;
             if (messageText.style.color === 'rgb(244, 67, 54)') return; 
             
             if (currentInput.length > 0) {
@@ -313,11 +312,10 @@
                 keypad.classList.add('locked'); // 成功・失敗問わず一律キーパッドを即時ロック
 
                 if (currentInput === savedPassword) {
-                    systemLocked = true; // 解除成功状態でシステムロック（リスタートでも戻らない）
                     statusText.innerText = "認証成功 / ACCESS GRANTED";
                     statusText.style.color = "#4caf50";
                     messageText.style.color = '#4caf50';
-                    messageText.innerText = "パスコード一致！";
+                    messageText.innerText = "パスコード一致！リスタートで再挑戦できます";
                     
                     timerDisplay.innerHTML = `突破タイム: ${finalTime} 秒！`;
                     timerDisplay.style.color = '#4caf50';
@@ -336,10 +334,8 @@
             currentInput = '';
         }
 
-        // リスタートボタン（リスタートを押すまでタイマーと入力ロックが維持される）
+        // リスタートボタン（これを押すまでタイマーと入力ロックが維持される。一致時も有効）
         function restartInputOnly() {
-            if (systemLocked) return; // 完全に突破した後はリスタート無効
-
             keypad.classList.remove('locked'); // キーパッドのロック解除
             currentInput = '';
             updateDots();
@@ -378,7 +374,6 @@
                 actionBtn.innerText = "登録からやり直す";
             } else {
                 isAuthMode = false;
-                systemLocked = false;
                 savedPassword = '';
                 statusText.innerText = "パスコード登録ステップ";
                 statusText.style.color = "#888888";
