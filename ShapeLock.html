@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AI一筆書き・PIN認証システム</title>
+    <title></title>シェイプロック</title>
     <style>
         body {
             text-align: center;
@@ -168,7 +168,7 @@
     <div id="system-status"> システム起動中... </div>
     <div id="result-display">AIモデルの読み込みを待っています。</div>
     
-    <div id="pin-preview">登録されたPIN: (未登録)</div>
+    <div id="pin-preview">登録された図形: (未登録)</div>
     <div id="timer-display">タイム: 0.00 秒</div>
     
     <div id="canvas-container">
@@ -176,7 +176,7 @@
     </div>
 
     <div class="controls">
-        <button id="viewBtn" class="verify-btn" onclick="togglePINVisibility()" disabled> 登録PINを確認</button>
+        <button id="viewBtn" class="verify-btn" onclick="togglePINVisibility()" disabled> 登録図形を確認</button>
         <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
         <button id="actionBtn" onclick="switchMode()" disabled>認証モードへ移行</button>
     </div>
@@ -230,7 +230,7 @@
                 model = await tmImage.load(URL + "model.json", URL + "metadata.json");
                 labels = model.getClassLabels();
                 
-                statusDisplay.innerHTML = " PINコード登録ステップ ";
+                statusDisplay.innerHTML = " 図形登録ステップ ";
                 resultDisplay.innerHTML = "一筆書きで図形を描いてね。離すと自動で登録されます (0/4)";
                 updatePINDisplay();
                 resetTimerDisplay();
@@ -336,20 +336,20 @@
             
             const viewBtn = document.getElementById('viewBtn');
             if (isPINVisible) {
-                viewBtn.innerText = "登録PINを隠す";
+                viewBtn.innerText = "登録図形を隠す";
             } else {
-                viewBtn.innerText = "登録PINを確認";
+                viewBtn.innerText = "登録図形を確認";
             }
             updatePINDisplay();
         }
 
         function updatePINDisplay() {
             if (savedPIN.length === 0) {
-                pinPreview.innerHTML = "登録されたPIN: (未登録)";
+                pinPreview.innerHTML = "登録された図形: (未登録)";
                 return;
             }
 
-            let text = "登録されたPIN: ";
+            let text = "登録された図形: ";
             savedPIN.forEach((val, index) => {
                 if (isPINVisible) {
                     text += `[${val}] `;
@@ -370,7 +370,7 @@
 
                 resetTimerDisplay();
 
-                statusDisplay.innerHTML = " PIN認証モード実行中 ";
+                statusDisplay.innerHTML = " 図形認証モード実行中 ";
                 statusDisplay.style.color = "#ffca28";
                 resultDisplay.innerHTML = "登録データを維持してリスタートしました。1回目から入力してください。 [進行度: _ _ _ _]";
                 resultDisplay.style.color = "#aaa";
@@ -382,12 +382,12 @@
 
                 resetTimerDisplay();
 
-                statusDisplay.innerHTML = " PINコード登録ステップ ";
+                statusDisplay.innerHTML = " 図形登録ステップ ";
                 statusDisplay.style.color = "#00e5ff";
-                resultDisplay.innerHTML = "一筆書きで図形を描いてね。離すと自動で登録されます (0/4)";
+                resultDisplay.innerHTML = "一筆書きで図形を描いてください。指を離すと自動で登録されます (0/4)";
                 resultDisplay.style.color = "#aaa";
                 
-                document.getElementById('viewBtn').innerText = "登録PINを確認";
+                document.getElementById('viewBtn').innerText = "登録図形を確認";
                 document.getElementById('viewBtn').disabled = true;
                 document.getElementById('actionBtn').innerText = "認証モードへ移行";
                 document.getElementById('actionBtn').disabled = true;
@@ -438,7 +438,7 @@
                         const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
                         timerDisplay.innerHTML = `登録タイム: ${finalTime} 秒`;
 
-                        resultDisplay.innerHTML = `4つのPIN登録が完了！[最後: ${topClass}(${topClassPercent}%)] 「認証モードへ移行」を押してください。`;
+                        resultDisplay.innerHTML = `4つの図形登録が完了！[最後: ${topClass}(${topClassPercent}%)] 「認証モードへ移行」を押してください。`;
                         document.getElementById('actionBtn').disabled = false;
                         
                         // ★4つの登録が終わった時はキャンバスをロック状態にする（endDrawingで白くクリアされます）
@@ -470,7 +470,7 @@
                         systemLocked = true; 
                         statusDisplay.innerHTML = "認証成功 / ACCESS GRANTED";
                         statusDisplay.style.color = "#4caf50";
-                        resultDisplay.innerHTML = `すべてのPINが一致！`;
+                        resultDisplay.innerHTML = `すべての図形が一致！`;
                         resultDisplay.style.color = "#4caf50";
                         
                         timerDisplay.innerHTML = `突破タイム: ${finalTime} 秒`;
@@ -509,7 +509,7 @@
                 isAuthMode = true;
                 inputCount = 0;
                 hasFailedTransition = false;
-                statusDisplay.innerHTML = " PIN認証モード実行中 ";
+                statusDisplay.innerHTML = " 図形認証モード実行中 ";
                 statusDisplay.style.color = "#ffca28";
                 resultDisplay.innerHTML = "登録した順番通りに、一筆書きで4回連続入力してください。 [進行度: _ _ _ _]";
                 document.getElementById('actionBtn').innerText = "登録からやり直す";
@@ -520,11 +520,11 @@
                 inputCount = 0;
                 hasFailedTransition = false;
                 isPINVisible = false;
-                statusDisplay.innerHTML = " PINコード登録ステップ ";
+                statusDisplay.innerHTML = " 図形登録ステップ ";
                 statusDisplay.style.color = "#00e5ff";
-                resultDisplay.innerHTML = "一筆書きで図形を描いてね。離すと自動で登録されます (0/4)";
+                resultDisplay.innerHTML = "一筆書きで図形を描いてください。指を離すと自動で登録されます (0/4)";
                 resultDisplay.style.color = "#aaa";
-                document.getElementById('viewBtn').innerText = "登録PINを確認";
+                document.getElementById('viewBtn').innerText = "登録図形を確認";
                 document.getElementById('viewBtn').disabled = true;
                 updatePINDisplay();
                 document.getElementById('actionBtn').innerText = "認証モードへ移行";
