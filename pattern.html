@@ -138,9 +138,9 @@
 
         // 状態管理
         let isAuthMode = false;
-        let systemLocked = false;
         let canvasInputLocked = false; // JS側での描画入力ガード
         let savedPattern = [];         // 確定した正解パターン
+        let isSuccessState = false;    // 一致成功したかどうかのフラグ
 
         // タイマー用変数
         let startTime = null;
@@ -177,7 +177,8 @@
             // 線の描画
             if (selectedCircles.length > 0) {
                 ctx.beginPath();
-                ctx.strokeStyle = isError ? '#f44336' : (isAuthMode ? '#ffd54f' : '#00adb5');
+                // 成功時は緑、エラー時は赤、それ以外はモードごとの色
+                ctx.strokeStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? '#ffd54f' : '#00adb5'));
                 ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -202,13 +203,13 @@
                 ctx.arc(circle.x, circle.y, radius, 0, Math.PI * 2);
                 
                 if (selectedCircles.includes(circle.id)) {
-                    ctx.fillStyle = isError ? '#f44336' : (isAuthMode ? '#ffd54f' : '#00adb5');
+                    ctx.fillStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? '#ffd54f' : '#00adb5'));
                     ctx.fill();
                     
                     // 外枠
                     ctx.beginPath();
                     ctx.arc(circle.x, circle.y, radius + 8, 0, Math.PI * 2);
-                    ctx.strokeStyle = isError ? 'rgba(244, 67, 54, 0.3)' : (isAuthMode ? 'rgba(255, 213, 79, 0.3)' : 'rgba(0, 173, 181, 0.3)');
+                    ctx.strokeStyle = isSuccessState ? 'rgba(76, 175, 80, 0.3)' : (isError ? 'rgba(244, 67, 54, 0.3)' : (isAuthMode ? 'rgba(255, 213, 79, 0.3)' : 'rgba(0, 173, 181, 0.3)'));
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 } else {
@@ -264,7 +265,7 @@
 
         // イベントハンドラ
         function startHandler(e) {
-            if (canvasContainer.classList.contains('locked') || canvasInputLocked || systemLocked) return;
+            if (canvasContainer.classList.contains('locked') || canvasInputLocked) return;
             e.preventDefault();
             
             if (!isTiming) {
@@ -280,7 +281,7 @@
         }
 
         function moveHandler(e) {
-            if (!isDrawing || canvasInputLocked || systemLocked) return;
+            if (!isDrawing || canvasInputLocked) return;
             e.preventDefault();
             currentPos = getMousePos(e);
             checkCollision(currentPos);
@@ -304,7 +305,7 @@
                 return;
             }
 
-            // ロック・ガードの有効化
+            // ロック・ガードの有効化（リスタートを押すまで固定）
             canvasInputLocked = true;
             canvasContainer.classList.add('locked');
 
@@ -317,15 +318,16 @@
             } else {
                 // 【認証モード】での入力完了
                 if (JSON.stringify(selectedCircles) === JSON.stringify(savedPattern)) {
-                    systemLocked = true; // 解除成功フラグ
+                    isSuccessState = true; // 解除成功状態フラグをON
                     statusText.innerText = "認証成功 / ACCESS GRANTED";
                     statusText.style.color = "#4caf50";
                     messageText.style.color = '#4caf50';
-                    messageText.innerText = "パターン一致！";
+                    messageText.innerText = "パターン一致！リスタートで再挑戦できます";
                     
                     timerDisplay.innerHTML = `突破タイム: ${finalTime} 秒！`;
                     timerDisplay.style.color = '#4caf50';
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
+                    draw(); // 緑色で描画パターンを維持
                 } else {
                     statusText.innerText = "認証失敗 / ACCESS DENIED";
                     statusText.style.color = "#f44336";
@@ -347,12 +349,11 @@
             draw(true);
         }
 
-        // リスタートボタン（これを押すまでタイマーと入力ロックが解除されない）
+        // リスタートボタン（これを押すまでタイマーと入力ロックが解除されない。一致時も有効）
         function restartInputOnly() {
-            if (systemLocked) return; // 完全に突破した後はリスタート無効
-
             canvasInputLocked = false;
             canvasContainer.classList.remove('locked');
+            isSuccessState = false; // 成功状態もクリア
             selectedCircles = [];
             resetTimerDisplay();
             draw();
@@ -378,6 +379,7 @@
             resetTimerDisplay();
             canvasInputLocked = false;
             canvasContainer.classList.remove('locked');
+            isSuccessState = false;
             selectedCircles = [];
             draw();
 
@@ -390,7 +392,6 @@
                 actionBtn.innerText = "登録からやり直す";
             } else {
                 isAuthMode = false;
-                systemLocked = false;
                 savedPattern = [];
                 statusText.innerText = "パターン登録ステップ";
                 statusText.style.color = "#aaaaaa";
