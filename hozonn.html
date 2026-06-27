@@ -129,7 +129,7 @@
 <body>
 
     <div id="system-status">画像送信用ページ</div>
-    <div id="result-display">⚠できるだけ素早く図形を描いてください⚠</div>
+    <div id="result-display">⚠できるだけ素早く一筆書きで図形を描いてください⚠</div>
     
     <div id="canvas-container">
         <canvas id="drawArea" width="224" height="224" style="width: 250px; height: 250px;"></canvas>
@@ -188,7 +188,7 @@
         function clearCanvas() {
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            resultDisplay.innerHTML = "⚠できるだけ素早く図形を描いてください⚠";
+            resultDisplay.innerHTML = "⚠できるだけ素早く一筆書きで図形を描いてください⚠";
             resultDisplay.style.color = "#aaa";
         }
 
