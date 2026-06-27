@@ -71,11 +71,46 @@
             color: #ffca28;
             border: 1px solid #ffca28;
         }
-        /* 保存ボタンのスタイル */
-        button.save-btn {
-            background: #1b4d3e;
-            color: #2ed573;
-            border: 1px solid #2ed573;
+
+        /* 統合・追加: SVG図形送信ボタンエリアのスタイル */
+        .shape-submit-container {
+            margin: 15px auto;
+            background: #15151e;
+            padding: 15px 10px;
+            border-radius: 12px;
+            border: 1px solid #222;
+            max-width: 90%;
+        }
+        .shape-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: #1a1a24;
+            border-radius: 8px;
+            margin: 0 4px;
+            border: 1px solid #333;
+            padding: 0;
+            transition: all 0.2s;
+        }
+        .shape-btn:hover {
+            background: #00e5ff;
+            border-color: #00e5ff;
+        }
+        /* ボタン内のSVGアイコン設定（認証システムと完全一致） */
+        .shape-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: #00e5ff;
+            stroke-width: 2.2; 
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.2s;
+        }
+        .shape-btn:hover svg {
+            stroke: #000000; /* ホバー時はアイコンを黒に */
         }
         
         .back-btn {
@@ -100,9 +135,28 @@
         <canvas id="drawArea" width="224" height="224" style="width: 250px; height: 250px;"></canvas>
     </div>
 
+    <div class="shape-submit-container">
+        <div style="font-size: 13px; margin-bottom: 10px; color: #aaa; font-weight: bold;">描いた図形を選んでフォルダに送信</div>
+        
+        <button class="shape-btn" onclick="uploadToDrive('〇')" title="〇用フォルダに送信">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/></svg>
+        </button>
+        <button class="shape-btn" onclick="uploadToDrive('△')" title="△用フォルダに送信">
+            <svg viewBox="0 0 24 24"><polygon points="12,4.5 4,19.5 20,19.5"/></svg>
+        </button>
+        <button class="shape-btn" onclick="uploadToDrive('□')" title="□用フォルダに送信">
+            <svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="1"/></svg>
+        </button>
+        <button class="shape-btn" onclick="uploadToDrive('⛥')" title="⛥用フォルダに送信">
+            <svg viewBox="0 0 24 24"><path d="M12,3.5 L17.85,21.5 L3.34,10.38 L20.66,10.38 L6.15,21.5 Z"/></svg>
+        </button>
+        <button class="shape-btn" onclick="uploadToDrive('∞')" title="∞用フォルダに送信">
+            <svg viewBox="0 0 24 24"><path d="M12,12 C14,10 15.2,7.2 17.2,7.2 A4.8,4.8 0 1,1 17.2,16.8 C15.2,16.8 14,14 12,12 C10,14 8.8,16.8 6.8,16.8 A4.8,4.8 0 1,1 6.8,7.2 C8.8,7.2 10,10 12,12 Z"/></svg>
+        </button>
+    </div>
+
     <div class="controls">
         <button id="clearBtn" class="clear-btn" onclick="clearCanvas()">キャンバスをクリア</button>
-        <button id="saveBtn" class="save-btn" onclick="saveCanvasAsImage()">画像を保存</button>
     </div>
 
     <div>
@@ -110,16 +164,20 @@
     </div>
 
     <script>
+        // ★ここにデプロイしたGASの「ウェブアプリURL」を貼り付けてください
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzkH8z1uZqlrrP2UEvxqULUNJ_zQROibZXaxYMdI7BYorpZ2V7X3o11LHRvSoOlbWLt1A/exec";
+
         const canvas = document.getElementById('drawArea');
         const ctx = canvas.getContext('2d');
+        const resultDisplay = document.getElementById('result-display');
         let drawing = false;
 
         // --- 1. キャンバスの初期化 ---
         function initCanvas() {
             clearCanvas();
             
-            // お絵描き設定（元の描画条件を完全に維持）
-            ctx.lineWidth = 12;          
+            // ★変更点: 認証用システムの描画条件（線の太さ・影等）と完全に一致させました
+            ctx.lineWidth = 8;          
             ctx.lineCap = 'round';       
             ctx.lineJoin = 'round';      
             ctx.shadowBlur = 1;          
@@ -130,16 +188,22 @@
         function clearCanvas() {
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            resultDisplay.innerHTML = "キャンバスに図形を描いてね。いつでも画像として保存できます。";
+            resultDisplay.style.color = "#aaa";
         }
 
         // --- 2. お絵描き処理 ---
         function getEventPos(e) {
             const MathRect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const clientY = e.touches ? e.touches[0].preventDefault : e.clientY;
             
-            const x = (clientX - MathRect.left) * (canvas.width / MathRect.width);
-            const y = (clientY - MathRect.top) * (canvas.height / MathRect.height);
+            // タッチイベントの座標バグを考慮した安全な取得処理
+            const actualClientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const actualClientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            const x = (actualClientX - MathRect.left) * (canvas.width / MathRect.width);
+            const y = (actualClientY - MathRect.top) * (canvas.height / MathRect.height);
             return { x, y };
         }
 
@@ -167,30 +231,39 @@
             }
         }
 
-        // --- 3. 画像保存処理 ---
-        function saveCanvasAsImage() {
-            // キャンバスの内容をDataURL（PNG形式）に変換
-            const imageURL = canvas.toDataURL("image/png");
-            
-            // 擬似的なダウンロードリンクを作成して実行
-            const downloadLink = document.createElement("a");
-            
-            // ファイル名にタイムスタンプを付与
-            const now = new Date();
-            const timestamp = now.getFullYear() +
-                String(now.getMonth() + 1).padStart(2, '0') +
-                String(now.getDate()).padStart(2, '0') + "_" +
-                String(now.getHours()).padStart(2, '0') +
-                String(now.getMinutes()).padStart(2, '0') +
-                String(now.getSeconds()).padStart(2, '0');
-            
-            downloadLink.download = `my_stroke_${timestamp}.png`;
-            downloadLink.href = imageURL;
-            
-            // リンクをクリックさせて保存を実行
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
+        // --- 3. Googleドライブへの画像送信処理 ---
+        function uploadToDrive(shapeName) {
+            if (GAS_URL === "ここにGASのウェブアプリURLを貼り付け") {
+                alert("プログラム内の『GAS_URL』変数を設定してください。");
+                return;
+            }
+
+            const base64Image = canvas.toDataURL("image/png");
+
+            resultDisplay.innerHTML = `「${shapeName}」フォルダへ画像を送信中...`;
+            resultDisplay.style.color = "#ffca28";
+
+            fetch(GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    shape: shapeName,
+                    image: base64Image
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                mode: 'no-cors'
+            })
+            .then(() => {
+                resultDisplay.innerHTML = `「${shapeName}」フォルダへ画像を送信しました！`;
+                resultDisplay.style.color = "#2ed573";
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            })
+            .catch(err => {
+                resultDisplay.innerHTML = `送信エラーが発生しました。`;
+                resultDisplay.style.color = "#ff4757";
+                console.error(err);
+            });
         }
 
         // イベントリスナーの登録
