@@ -25,8 +25,8 @@
             height: 35px;
         }
         #result-display {
-            font-size: 15px;
-            color: #aaa;
+            font-size: 20px;
+            color: #accdda;
             margin: 5px 0 15px 0;
             height: 40px;
             padding: 0 10px;
@@ -233,6 +233,12 @@
 
         // --- 3. Googleドライブへの画像送信処理 ---
         function uploadToDrive(shapeName) {
+            // 【追加】送信前の確認アラート（ワンクッション）
+            const isConfirmed = confirm(`「${shapeName}」として画像を送信してもよろしいですか？`);
+            if (!isConfirmed) {
+                return; // キャンセルされた場合はここで処理を中断
+            }
+
             if (GAS_URL === "ここにGASのウェブアプリURLを貼り付け") {
                 alert("プログラム内の『GAS_URL』変数を設定してください。");
                 return;
