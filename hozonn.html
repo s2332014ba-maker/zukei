@@ -255,7 +255,7 @@
                 mode: 'no-cors'
             })
             .then(() => {
-                resultDisplay.innerHTML = `「${shapeName}」フォルダへ画像を送信しました！`;
+                resultDisplay.innerHTML = `「${shapeName}」フォルダへ画像を送信しました！キャンバスをクリアしてください`;
                 resultDisplay.style.color = "#2ed573";
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             })
