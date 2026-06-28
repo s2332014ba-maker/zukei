@@ -211,6 +211,31 @@
 
         const MAX_LENGTH = 5; // 桁数
 
+        // --- ★初期化処理（ローカルストレージからの読み込み） ---
+        function initApp() {
+            const localPassword = localStorage.getItem("savedPassword");
+            if (localPassword && localPassword.length === MAX_LENGTH) {
+                savedPassword = localPassword;
+                isAuthMode = true; // 最初から認証モードにする
+                
+                statusText.innerText = "パスコード認証モード実行中";
+                statusText.style.color = "#ffca28";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "保存されたパスコードがあります。入力して解除してください。";
+                actionBtn.innerText = "登録からやり直す";
+                actionBtn.disabled = false;
+            } else {
+                statusText.innerText = "パスコード登録ステップ";
+                statusText.style.color = "#888888";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "新しいパスコードを入力 (0/5)";
+                actionBtn.innerText = "認証モードへ移行";
+                actionBtn.disabled = true;
+            }
+            resetTimerDisplay();
+            updateDots();
+        }
+
         // タイマー制御用関数
         function startTimer() {
             isTiming = true;
@@ -303,6 +328,9 @@
                 savedPassword = currentInput;
                 keypad.classList.add('locked'); // キーパッドをロック
                 
+                // ★ローカルストレージにパスコードを保存
+                localStorage.setItem("savedPassword", savedPassword);
+                
                 timerDisplay.innerHTML = `登録タイム: ${finalTime} 秒`;
                 messageText.innerHTML = `パスコード登録完了！「認証モードへ移行」を押してください。`;
                 actionBtn.disabled = false;
@@ -334,7 +362,7 @@
             currentInput = '';
         }
 
-        // リスタートボタン（これを押すまでタイマーと入力ロックが維持される。一致時も有効）
+        // リスタートボタン
         function restartInputOnly() {
             keypad.classList.remove('locked'); // キーパッドのロック解除
             currentInput = '';
@@ -348,6 +376,10 @@
                 messageText.innerText = "登録データを維持してリスタートしました。";
             } else {
                 savedPassword = '';
+                
+                // ★登録中にリスタートした場合はローカルストレージも消去
+                localStorage.removeItem("savedPassword");
+
                 statusText.innerText = "パスコード登録ステップ";
                 statusText.style.color = "#888888";
                 messageText.style.color = "#ffffff";
@@ -375,6 +407,10 @@
             } else {
                 isAuthMode = false;
                 savedPassword = '';
+                
+                // ★登録からやり直すときはローカルストレージを削除
+                localStorage.removeItem("savedPassword");
+
                 statusText.innerText = "パスコード登録ステップ";
                 statusText.style.color = "#888888";
                 messageText.style.color = "#ffffff";
@@ -383,6 +419,9 @@
                 actionBtn.disabled = true;
             }
         }
+
+        // アプリ起動
+        initApp();
     </script>
 </body>
 </html>
