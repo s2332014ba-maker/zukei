@@ -230,8 +230,29 @@
                 model = await tmImage.load(URL + "model.json", URL + "metadata.json");
                 labels = model.getClassLabels();
                 
-                statusDisplay.innerHTML = " 図形登録ステップ ";
-                resultDisplay.innerHTML = "一筆書きで図形を描いてね。離すと自動で登録されます (0/4)";
+                // ★保存されたPINの読み込み
+                const localPIN = localStorage.getItem("savedPIN");
+                if (localPIN) {
+                    savedPIN = JSON.parse(localPIN);
+                }
+
+                // ★PINが保存されているかどうかで初期状態を分岐
+                if (savedPIN.length === 4) {
+                    isAuthMode = true; // 最初から認証モードにする
+                    statusDisplay.innerHTML = " 図形認証モード実行中 ";
+                    statusDisplay.style.color = "#ffca28";
+                    resultDisplay.innerHTML = "保存されたデータがあります。順番通りに入力してください。 [進行度: _ _ _ _]";
+                    document.getElementById('actionBtn').innerText = "登録からやり直す";
+                    document.getElementById('actionBtn').disabled = false;
+                    document.getElementById('viewBtn').disabled = false;
+                } else {
+                    statusDisplay.innerHTML = " 図形登録ステップ ";
+                    resultDisplay.innerHTML = "一筆書きで図形を描いてね。離すと自動で登録されます (0/4)";
+                    document.getElementById('actionBtn').innerText = "認証モードへ移行";
+                    document.getElementById('actionBtn').disabled = true;
+                    document.getElementById('viewBtn').disabled = true;
+                }
+
                 updatePINDisplay();
                 resetTimerDisplay();
                 
@@ -267,7 +288,6 @@
         }
 
         function startDrawing(e) {
-            // ★システムロック中、またはロッククラスが付与されているときは描かせない
             if (systemLocked || canvas.classList.contains('locked')) return;
             e.preventDefault();
 
@@ -295,9 +315,6 @@
                 drawing = false;
                 
                 await processStroke();
-                
-                // ★4つ目の登録時も含め、常にキャンバスをクリア。
-                // 登録完了時や認証終了時（再描画禁止時）は見た目のみ変更 or そのままクリア
                 clearCanvas();
             }
         }
@@ -361,7 +378,7 @@
         }
 
         function restartInputOnly() {
-            canvas.classList.remove('locked'); // ★キャンバスのロック解除
+            canvas.classList.remove('locked'); 
 
             if (isAuthMode) {
                 inputCount = 0;
@@ -379,6 +396,9 @@
                 inputCount = 0;
                 hasFailedTransition = false;
                 isPINVisible = false;
+                
+                // ★リスタート時にローカルストレージもクリアする
+                localStorage.removeItem("savedPIN");
 
                 resetTimerDisplay();
 
@@ -441,7 +461,9 @@
                         resultDisplay.innerHTML = `4つの図形登録が完了！[最後: ${topClass}(${topClassPercent}%)] 「認証モードへ移行」を押してください。`;
                         document.getElementById('actionBtn').disabled = false;
                         
-                        // ★4つの登録が終わった時はキャンバスをロック状態にする（endDrawingで白くクリアされます）
+                        // ★4つ目の登録が完了した瞬間にローカルストレージに保存
+                        localStorage.setItem("savedPIN", JSON.stringify(savedPIN));
+
                         canvas.classList.add('locked');
                     }
                 }
@@ -463,7 +485,6 @@
                     stopTimer(); 
                     const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
 
-                    // ★認証終了時（4回描き終わった時点）で、成功・失敗問わず一律キャンバスを即時ロック
                     canvas.classList.add('locked');
 
                     if (!hasFailedTransition) {
@@ -478,7 +499,6 @@
 
                         if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
                     } else {
-                        // 次の再挑戦のために一旦リセットはするが、描画は禁止（リスタートボタンを押すまで locked が維持されます）
                         inputCount = 0;
                         hasFailedTransition = false; 
                         
@@ -503,7 +523,7 @@
 
         function switchMode() {
             resetTimerDisplay(); 
-            canvas.classList.remove('locked'); // ★モード切り替え時はロックを解除
+            canvas.classList.remove('locked'); 
 
             if (!isAuthMode) {
                 isAuthMode = true;
@@ -520,6 +540,10 @@
                 inputCount = 0;
                 hasFailedTransition = false;
                 isPINVisible = false;
+
+                // ★登録からやり直す際も、古い保存データを消去する
+                localStorage.removeItem("savedPIN");
+
                 statusDisplay.innerHTML = " 図形登録ステップ ";
                 statusDisplay.style.color = "#00e5ff";
                 resultDisplay.innerHTML = "一筆書きで図形を描いてください。指を離すと自動で登録されます (0/4)";
