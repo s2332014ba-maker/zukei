@@ -18,7 +18,7 @@
             touch-action: none; /* スマホのスクロールやピンチズームを完全に禁止 */
         }
         
-        /* メニューとデバッグ情報をまとめて上に引き上げるためのコンテナ */
+        /* メメニューとデバッグ情報をまとめて上に引き上げるためのコンテナ */
         .bottom-group-container {
             position: relative;
             top: -25px;             
@@ -53,6 +53,19 @@
             height: 40px;
             padding: 0 10px;
         }
+
+        /* カウンター表示エリア */
+        .counter-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 13px;
+            margin: 5px 0;
+            color: #aaaaaa;
+        }
+        .count-success { color: #4caf50; font-weight: bold; }
+        .count-error { color: #f44336; font-weight: bold; }
+
         #pin-preview {
             font-size: 13px;
             color: #ffca28;
@@ -125,6 +138,13 @@
             border: 1px solid #ffd54f;
         }
         
+        /* カウントリセットボタン */
+        button.reset-count-btn {
+            background: #2d1a1a;
+            color: #ff5252;
+            border: 1px solid #ff5252;
+        }
+        
         /* ラベルの記号を等幅・等サイズにするスタイル */
         .label-badge {
             display: inline-flex;
@@ -149,7 +169,7 @@
             stroke-linejoin: round;
         }
         
-        /* メニューに戻るボタンのスタイル */
+        /* メメニューに戻るボタンのスタイル */
         .back-btn {
             display: inline-block;
             margin-top: 25px;
@@ -168,6 +188,11 @@
     <div id="system-status"> システム起動中... </div>
     <div id="result-display">AIモデルの読み込みを待っています。</div>
     
+    <div class="counter-container">
+        <div>成功: <span id="success-count" class="count-success">0</span> 回</div>
+        <div>失敗: <span id="error-count" class="count-error">0</span> 回</div>
+    </div>
+
     <div id="pin-preview">登録された図形: (未登録)</div>
     <div id="timer-display">タイム: 0.00 秒</div>
     
@@ -177,8 +202,9 @@
 
     <div class="controls">
         <button id="viewBtn" class="verify-btn" onclick="togglePINVisibility()" disabled> 登録図形を確認</button>
-        <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
+        <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()" disabled>リスタート</button>
         <button id="actionBtn" onclick="switchMode()" disabled>認証モードへ移行</button>
+        <button id="resetCountBtn" class="reset-count-btn" onclick="resetCounters()" disabled>カウントリセット</button>
     </div>
 
     <div class="bottom-group-container">
@@ -202,6 +228,10 @@
         let isPINVisible = false;    
         let hasFailedTransition = false; 
 
+        // カウント用変数
+        let successCount = 0;
+        let errorCount = 0;
+
         // --- タイマー用変数 ---
         let startTime = null;
         let timerInterval = null;
@@ -214,6 +244,8 @@
         const pinPreview = document.getElementById('pin-preview');
         const timerDisplay = document.getElementById('timer-display');
         const debugInfo = document.getElementById('debug-info');
+        const successCountText = document.getElementById('success-count');
+        const errorCountText = document.getElementById('error-count');
 
         // AIモデルの出す文字に対応する【完全等幅・美麗SVG】図形データ
         const svgIcons = {
@@ -253,6 +285,15 @@
                     document.getElementById('viewBtn').disabled = true;
                 }
 
+                // ★モデル読み込み完了後にリスタートとカウントリセットを有効化
+                document.getElementById('keepRestartBtn').disabled = false;
+                document.getElementById('resetCountBtn').disabled = false;
+
+                // ★カウントの読み込みと表示
+                successCount = parseInt(localStorage.getItem("ai_successCount")) || 0;
+                errorCount = parseInt(localStorage.getItem("ai_errorCount")) || 0;
+                updateCounterDisplay();
+
                 updatePINDisplay();
                 resetTimerDisplay();
                 
@@ -266,6 +307,22 @@
             } catch (e) {
                 statusDisplay.innerHTML = "❌ エラー: ロード失敗";
             }
+        }
+
+        // --- カウンター制御関数 ---
+        function updateCounterDisplay() {
+            successCountText.innerText = successCount;
+            errorCountText.innerText = errorCount;
+        }
+
+        function resetCounters() {
+            if (!model) return; // セーフティガード
+            successCount = 0;
+            errorCount = 0;
+            localStorage.setItem("ai_successCount", 0);
+            localStorage.setItem("ai_errorCount", 0);
+            updateCounterDisplay();
+            if (navigator.vibrate) navigator.vibrate(50);
         }
 
         // --- 2. お絵描き設定 ---
@@ -288,7 +345,7 @@
         }
 
         function startDrawing(e) {
-            if (systemLocked || canvas.classList.contains('locked')) return;
+            if (systemLocked || canvas.classList.contains('locked') || !model) return;
             e.preventDefault();
 
             if (!isTiming) {
@@ -378,6 +435,7 @@
         }
 
         function restartInputOnly() {
+            if (!model) return; // セーフティガード
             canvas.classList.remove('locked'); 
 
             if (isAuthMode) {
@@ -498,6 +556,10 @@
                         timerDisplay.style.color = "#4caf50";
 
                         if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
+
+                        // ★成功カウント追加
+                        successCount++;
+                        localStorage.setItem("ai_successCount", successCount);
                     } else {
                         inputCount = 0;
                         hasFailedTransition = false; 
@@ -512,7 +574,12 @@
 
                         if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
                         isTiming = false; 
+
+                        // ★失敗カウント追加
+                        errorCount++;
+                        localStorage.setItem("ai_errorCount", errorCount);
                     }
+                    updateCounterDisplay();
                 } else {
                     let progressDots = "* ".repeat(inputCount) + "_ ".repeat(4 - inputCount);
                     resultDisplay.innerHTML = `次の図形を描いてください。 [進行度: ${progressDots}]`;
@@ -522,6 +589,7 @@
         }
 
         function switchMode() {
+            if (!model) return; // セーフティガード
             resetTimerDisplay(); 
             canvas.classList.remove('locked'); 
 
