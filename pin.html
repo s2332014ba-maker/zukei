@@ -30,10 +30,21 @@
 
         #message {
             font-size: 1.2rem;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             height: 24px;
             text-align: center;
         }
+
+        /* カウンター表示エリア */
+        .counter-container {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            color: #aaaaaa;
+        }
+        .count-success { color: #4caf50; font-weight: bold; }
+        .count-error { color: #f44336; font-weight: bold; }
 
         #timer-display {
             font-size: 1rem;
@@ -113,6 +124,13 @@
         .controls {
             margin-top: 30px;
             display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-row {
+            display: flex;
             gap: 10px;
         }
 
@@ -146,6 +164,14 @@
             border: 1px solid #ffd54f;
         }
 
+        button.reset-count-btn {
+            background: #2c1a1a;
+            color: #ff5252;
+            border: 1px solid #ff5252;
+            padding: 6px 12px;
+            font-size: 0.75rem;
+        }
+
         .back-btn {
             display: inline-block;
             margin-top: 25px;
@@ -159,6 +185,12 @@
 
     <div id="status">パスコード登録ステップ</div>
     <div id="message">新しいパスコードを入力 (0/5)</div>
+    
+    <div class="counter-container">
+        <div>成功: <span id="success-count" class="count-success">0</span> 回</div>
+        <div>失敗: <span id="error-count" class="count-error">0</span> 回</div>
+    </div>
+
     <div id="timer-display">タイム: 0.00 秒</div>
 
     <div class="dots-container">
@@ -185,8 +217,11 @@
     </div>
 
     <div class="controls">
-        <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
-        <button id="actionBtn" class="action-btn" onclick="switchMode()" disabled>認証モードへ移行</button>
+        <div class="btn-row">
+            <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
+            <button id="actionBtn" class="action-btn" onclick="switchMode()" disabled>認証モードへ移行</button>
+        </div>
+        <button class="reset-count-btn" onclick="resetCounters()">カウントのみリセット</button>
     </div>
 
     <div>
@@ -199,10 +234,16 @@
         const timerDisplay = document.getElementById('timer-display');
         const keypad = document.getElementById('keypad');
         const actionBtn = document.getElementById('actionBtn');
+        const successCountText = document.getElementById('success-count');
+        const errorCountText = document.getElementById('error-count');
         
         let isAuthMode = false;
         let currentInput = '';
         let savedPassword = '';
+
+        // カウント用変数
+        let successCount = 0;
+        let errorCount = 0;
 
         // タイマー用変数
         let startTime = null;
@@ -211,13 +252,13 @@
 
         const MAX_LENGTH = 5; // 桁数
 
-        // --- ★初期化処理（ローカルストレージからの読み込み） ---
+        // --- 初期化処理（ローカルストレージからの読み込み） ---
         function initApp() {
+            // パスコードの読込
             const localPassword = localStorage.getItem("savedPassword");
             if (localPassword && localPassword.length === MAX_LENGTH) {
                 savedPassword = localPassword;
-                isAuthMode = true; // 最初から認証モードにする
-                
+                isAuthMode = true;
                 statusText.innerText = "パスコード認証モード実行中";
                 statusText.style.color = "#ffca28";
                 messageText.style.color = "#ffffff";
@@ -232,8 +273,28 @@
                 actionBtn.innerText = "認証モードへ移行";
                 actionBtn.disabled = true;
             }
+
+            // カウントの読込
+            successCount = parseInt(localStorage.getItem("pass_successCount")) || 0;
+            errorCount = parseInt(localStorage.getItem("pass_errorCount")) || 0;
+            updateCounterDisplay();
+
             resetTimerDisplay();
             updateDots();
+        }
+
+        function updateCounterDisplay() {
+            successCountText.innerText = successCount;
+            errorCountText.innerText = errorCount;
+        }
+
+        function resetCounters() {
+            successCount = 0;
+            errorCount = 0;
+            localStorage.setItem("pass_successCount", 0);
+            localStorage.setItem("pass_errorCount", 0);
+            updateCounterDisplay();
+            if (navigator.vibrate) navigator.vibrate(50);
         }
 
         // タイマー制御用関数
@@ -263,9 +324,8 @@
         // 数字が押されたとき
         function pressKey(num) {
             if (currentInput.length >= MAX_LENGTH || keypad.classList.contains('locked')) return;
-            if (messageText.style.color === 'rgb(244, 67, 54)') return; 
+            if (messageText.style.color === 'rgb(244, 67, 54)' || messageText.style.color === 'rgb(76, 175, 80)') return; 
             
-            // 最初の1文字目が押されたらタイマーをスタート
             if (!isTiming && currentInput.length === 0) {
                 startTimer();
                 timerDisplay.style.color = "#00ff66";
@@ -280,10 +340,8 @@
 
             if (navigator.vibrate) navigator.vibrate(15); 
 
-            // 規定桁数が入力されたら判定へ
             if (currentInput.length === MAX_LENGTH) {
                 stopTimer();
-                // 最後のドットの塗りつぶしを見せるためにディレイ
                 setTimeout(handleInputComplete, 200);
             }
         }
@@ -291,7 +349,7 @@
         // 「削除」が押されたとき
         function pressDelete() {
             if (keypad.classList.contains('locked')) return;
-            if (messageText.style.color === 'rgb(244, 67, 54)') return; 
+            if (messageText.style.color === 'rgb(244, 67, 54)' || messageText.style.color === 'rgb(76, 175, 80)') return; 
             
             if (currentInput.length > 0) {
                 currentInput = currentInput.slice(0, -1);
@@ -324,11 +382,8 @@
             const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
 
             if (!isAuthMode) {
-                // 【登録モード】での入力完了
                 savedPassword = currentInput;
-                keypad.classList.add('locked'); // キーパッドをロック
-                
-                // ★ローカルストレージにパスコードを保存
+                keypad.classList.add('locked');
                 localStorage.setItem("savedPassword", savedPassword);
                 
                 timerDisplay.innerHTML = `登録タイム: ${finalTime} 秒`;
@@ -336,8 +391,7 @@
                 actionBtn.disabled = false;
                 
             } else {
-                // 【認証モード】での入力完了
-                keypad.classList.add('locked'); // 成功・失敗問わず一律キーパッドを即時ロック
+                keypad.classList.add('locked');
 
                 if (currentInput === savedPassword) {
                     statusText.innerText = "認証成功 / ACCESS GRANTED";
@@ -348,6 +402,11 @@
                     timerDisplay.innerHTML = `突破タイム: ${finalTime} 秒！`;
                     timerDisplay.style.color = '#4caf50';
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
+
+                    // 成功数カウントアップ
+                    successCount++;
+                    localStorage.setItem("pass_successCount", successCount);
+
                 } else {
                     statusText.innerText = "認証失敗 / ACCESS DENIED";
                     statusText.style.color = "#f44336";
@@ -357,14 +416,19 @@
                     timerDisplay.innerHTML = `失敗タイム: ${finalTime} 秒`;
                     timerDisplay.style.color = '#f44336';
                     if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+
+                    // 失敗数カウントアップ
+                    errorCount++;
+                    localStorage.setItem("pass_errorCount", errorCount);
                 }
+                updateCounterDisplay();
             }
             currentInput = '';
         }
 
         // リスタートボタン
         function restartInputOnly() {
-            keypad.classList.remove('locked'); // キーパッドのロック解除
+            keypad.classList.remove('locked');
             currentInput = '';
             updateDots();
             resetTimerDisplay();
@@ -376,8 +440,6 @@
                 messageText.innerText = "登録データを維持してリスタートしました。";
             } else {
                 savedPassword = '';
-                
-                // ★登録中にリスタートした場合はローカルストレージも消去
                 localStorage.removeItem("savedPassword");
 
                 statusText.innerText = "パスコード登録ステップ";
@@ -407,8 +469,6 @@
             } else {
                 isAuthMode = false;
                 savedPassword = '';
-                
-                // ★登録からやり直すときはローカルストレージを削除
                 localStorage.removeItem("savedPassword");
 
                 statusText.innerText = "パスコード登録ステップ";
@@ -420,7 +480,6 @@
             }
         }
 
-        // アプリ起動
         initApp();
     </script>
 </body>
