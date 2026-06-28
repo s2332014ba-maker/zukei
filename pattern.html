@@ -30,10 +30,21 @@
 
         #message {
             font-size: 1.2rem;
-            margin-bottom: 28px;
+            margin-bottom: 10px;
             height: 28px;
             text-align: center;
         }
+
+        /* カウンター表示エリア */
+        .counter-container {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            color: #aaaaaa;
+        }
+        .count-success { color: #4caf50; font-weight: bold; }
+        .count-error { color: #f44336; font-weight: bold; }
 
         #timer-display {
             font-size: 1rem;
@@ -50,10 +61,9 @@
             transition: opacity 0.2s;
         }
 
-        /* 入力ロック（非アクティブ）時のスタイル */
         #canvas-container.locked {
             opacity: 0.3;
-            pointer-events: none; /* タッチイベントを完全にシャットアウト */
+            pointer-events: none;
         }
 
         canvas {
@@ -64,6 +74,13 @@
         /* コントロールボタン群 */
         .controls {
             margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-row {
             display: flex;
             gap: 10px;
         }
@@ -98,6 +115,14 @@
             border: 1px solid #ffd54f;
         }
 
+        button.reset-count-btn {
+            background: #2d1d1d;
+            color: #ff5252;
+            border: 1px solid #ff5252;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+        }
+
         .back-btn {
             display: inline-block;
             margin-top: 25px;
@@ -111,6 +136,12 @@
 
     <div id="status">パターン登録ステップ</div>
     <div id="message">新しいパターンを描いてください</div>
+
+    <div class="counter-container">
+        <div>成功: <span id="success-count" class="count-success">0</span> 回</div>
+        <div>失敗: <span id="error-count" class="count-error">0</span> 回</div>
+    </div>
+
     <div id="timer-display">タイム: 0.00 秒</div>
     
     <div id="canvas-container">
@@ -118,8 +149,11 @@
     </div>
 
     <div class="controls">
-        <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
-        <button id="actionBtn" class="action-btn" onclick="switchMode()" disabled>認証モードへ移行</button>
+        <div class="btn-row">
+            <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
+            <button id="actionBtn" class="action-btn" onclick="switchMode()" disabled>認証モードへ移行</button>
+        </div>
+        <button class="reset-count-btn" onclick="resetCounters()">カウントのみリセット</button>
     </div>
 
     <div>
@@ -134,12 +168,18 @@
         const messageText = document.getElementById('message');
         const timerDisplay = document.getElementById('timer-display');
         const actionBtn = document.getElementById('actionBtn');
+        const successCountText = document.getElementById('success-count');
+        const errorCountText = document.getElementById('error-count');
 
         // 状態管理
         let isAuthMode = false;
-        let canvasInputLocked = false; // JS側での描画入力ガード
-        let savedPattern = [];         // 確定した正解パターン
-        let isSuccessState = false;    // 一致成功したかどうかのフラグ
+        let canvasInputLocked = false;
+        let savedPattern = [];
+        let isSuccessState = false;
+
+        // カウント用変数
+        let successCount = 0;
+        let errorCount = 0;
 
         // タイマー用変数
         let startTime = null;
@@ -153,7 +193,6 @@
         let isDrawing = false;
         let currentPos = { x: 0, y: 0 };
 
-        // 点の配置初期化
         const spacingX = canvas.width / (cols + 1);
         const spacingY = canvas.height / (rows + 1);
         const radius = 12;
@@ -169,14 +208,15 @@
             }
         }
 
-        // --- ★初期化処理（ローカルストレージからの読み込み） ---
+        // --- 初期化処理（ローカルストレージからの読み込み） ---
         function initApp() {
+            // パターンの読込
             const localPattern = localStorage.getItem("savedPattern");
             if (localPattern) {
                 try {
                     savedPattern = JSON.parse(localPattern);
                     if (Array.isArray(savedPattern) && savedPattern.length >= 3) {
-                        isAuthMode = true; // 最初から認証モードにする
+                        isAuthMode = true;
                         statusText.innerText = "パターン認証モード実行中";
                         statusText.style.color = "#ffd54f";
                         messageText.style.color = "#ffffff";
@@ -200,18 +240,35 @@
                 actionBtn.disabled = true;
             }
 
+            // カウントの読込
+            successCount = parseInt(localStorage.getItem("pattern_successCount")) || 0;
+            errorCount = parseInt(localStorage.getItem("pattern_errorCount")) || 0;
+            updateCounterDisplay();
+
             resetTimerDisplay();
             draw();
+        }
+
+        function updateCounterDisplay() {
+            successCountText.innerText = successCount;
+            errorCountText.innerText = errorCount;
+        }
+
+        function resetCounters() {
+            successCount = 0;
+            errorCount = 0;
+            localStorage.setItem("pattern_successCount", 0);
+            localStorage.setItem("pattern_errorCount", 0);
+            updateCounterDisplay();
+            if (navigator.vibrate) navigator.vibrate(50);
         }
 
         // 描画
         function draw(isError = false) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 線の描画
             if (selectedCircles.length > 0) {
                 ctx.beginPath();
-                // 成功時は緑、エラー時は赤、それ以外はモードごとの色
                 ctx.strokeStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? '#ffd54f' : '#00adb5'));
                 ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
@@ -231,7 +288,6 @@
                 ctx.stroke();
             }
 
-            // 点の描画
             circles.forEach(circle => {
                 ctx.beginPath();
                 ctx.arc(circle.x, circle.y, radius, 0, Math.PI * 2);
@@ -240,7 +296,6 @@
                     ctx.fillStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? '#ffd54f' : '#00adb5'));
                     ctx.fill();
                     
-                    // 外枠
                     ctx.beginPath();
                     ctx.arc(circle.x, circle.y, radius + 8, 0, Math.PI * 2);
                     ctx.strokeStyle = isSuccessState ? 'rgba(76, 175, 80, 0.3)' : (isError ? 'rgba(244, 67, 54, 0.3)' : (isAuthMode ? 'rgba(255, 213, 79, 0.3)' : 'rgba(0, 173, 181, 0.3)'));
@@ -273,7 +328,6 @@
             }
         }
 
-        // --- タイマー制御用関数 ---
         function startTimer() {
             isTiming = true;
             startTime = performance.now();
@@ -297,7 +351,6 @@
             timerDisplay.style.color = "#00ff66";
         }
 
-        // イベントハンドラ
         function startHandler(e) {
             if (canvasContainer.classList.contains('locked') || canvasInputLocked) return;
             e.preventDefault();
@@ -329,7 +382,6 @@
             stopTimer();
             const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
 
-            // 3点未満の入力エラー処理
             if (selectedCircles.length < 3) {
                 canvasInputLocked = true;
                 canvasContainer.classList.add('locked');
@@ -339,24 +391,19 @@
                 return;
             }
 
-            // ロック・ガードの有効化（リスタートを押すまで固定）
             canvasInputLocked = true;
             canvasContainer.classList.add('locked');
 
             if (!isAuthMode) {
-                // 【登録モード】での入力完了
                 savedPattern = [...selectedCircles];
-                
-                // ★ローカルストレージに配列データを文字列化して保存
                 localStorage.setItem("savedPattern", JSON.stringify(savedPattern));
 
                 timerDisplay.innerHTML = `登録タイム: ${finalTime} 秒`;
                 messageText.innerHTML = `パターン登録完了！「認証モードへ移行」を押してください。`;
                 actionBtn.disabled = false;
             } else {
-                // 【認証モード】での入力完了
                 if (JSON.stringify(selectedCircles) === JSON.stringify(savedPattern)) {
-                    isSuccessState = true; // 解除成功状態フラグをON
+                    isSuccessState = true;
                     statusText.innerText = "認証成功 / ACCESS GRANTED";
                     statusText.style.color = "#4caf50";
                     messageText.style.color = '#4caf50';
@@ -365,7 +412,11 @@
                     timerDisplay.innerHTML = `突破タイム: ${finalTime} 秒！`;
                     timerDisplay.style.color = '#4caf50';
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
-                    draw(); // 緑色で描画パターンを維持
+                    
+                    // 成功数カウントアップ
+                    successCount++;
+                    localStorage.setItem("pattern_successCount", successCount);
+                    draw();
                 } else {
                     statusText.innerText = "認証失敗 / ACCESS DENIED";
                     statusText.style.color = "#f44336";
@@ -375,23 +426,26 @@
                     timerDisplay.innerHTML = `失敗タイム: ${finalTime} 秒`;
                     timerDisplay.style.color = '#f44336';
                     if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
-                    draw(true); // 赤色（エラー）で描画パターンを維持
+                    
+                    // 失敗数カウントアップ
+                    errorCount++;
+                    localStorage.setItem("pattern_errorCount", errorCount);
+                    draw(true);
                 }
+                updateCounterDisplay();
             }
         }
 
-        // エラー表示の一時処理
         function showError(msg) {
             messageText.style.color = '#f44336';
             messageText.innerText = msg;
             draw(true);
         }
 
-        // リスタートボタン
         function restartInputOnly() {
             canvasInputLocked = false;
             canvasContainer.classList.remove('locked');
-            isSuccessState = false; // 成功状態もクリア
+            isSuccessState = false;
             selectedCircles = [];
             resetTimerDisplay();
             draw();
@@ -403,8 +457,6 @@
                 messageText.innerText = "登録データを維持してリスタートしました。";
             } else {
                 savedPattern = [];
-                
-                // ★登録画面でのリスタート時にストレージを削除
                 localStorage.removeItem("savedPattern");
 
                 statusText.innerText = "パターン登録ステップ";
@@ -416,7 +468,6 @@
             }
         }
 
-        // モード切り替えボタン
         function switchMode() {
             resetTimerDisplay();
             canvasInputLocked = false;
@@ -435,8 +486,6 @@
             } else {
                 isAuthMode = false;
                 savedPattern = [];
-                
-                // ★「登録からやり直す」ときはストレージデータを明示的に消去
                 localStorage.removeItem("savedPattern");
 
                 statusText.innerText = "パターン登録ステップ";
@@ -448,7 +497,6 @@
             }
         }
 
-        // イベント登録
         canvas.addEventListener('mousedown', startHandler);
         window.addEventListener('mousemove', moveHandler);
         window.addEventListener('mouseup', endHandler);
@@ -456,7 +504,6 @@
         window.addEventListener('touchmove', moveHandler, { passive: false });
         window.addEventListener('touchend', endHandler);
 
-        // ★アプリ起動処理の呼び出し
         initApp();
     </script>
 </body>
