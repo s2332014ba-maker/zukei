@@ -24,41 +24,46 @@
             font-size: 0.8rem;
             color: #888888;
             letter-spacing: 1.5px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             text-transform: uppercase;
         }
 
+        /* ★高さを自動調整にし、2行になっても被らないように修正 */
         #message {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-            height: 24px;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            min-height: 24px;
+            height: auto;
             text-align: center;
+            max-width: 90%;
+            line-height: 1.4;
         }
 
-        /* カウンター表示エリア */
+        /* ★余白を微調整 */
+        #timer-display {
+            font-size: 0.95rem;
+            color: #00ff66;
+            font-family: monospace;
+            margin-bottom: 10px;
+            height: 20px;
+        }
+
+        /* ★位置を下げたカウンターのスタイル調整 */
         .counter-container {
             display: flex;
             gap: 20px;
-            font-size: 0.9rem;
-            margin-bottom: 15px;
+            font-size: 0.85rem;
+            margin-bottom: 20px; 
             color: #aaaaaa;
         }
         .count-success { color: #4caf50; font-weight: bold; }
         .count-error { color: #f44336; font-weight: bold; }
 
-        #timer-display {
-            font-size: 1rem;
-            color: #00ff66;
-            font-family: monospace;
-            margin-bottom: 25px;
-            height: 20px;
-        }
-
         /* 入力中のドット表示 */
         .dots-container {
             display: flex;
             gap: 20px;
-            margin-bottom: 50px;
+            margin-bottom: 35px;
             height: 15px;
         }
 
@@ -78,7 +83,7 @@
         .keypad {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 20px 25px;
+            gap: 12px 25px; /* スマホ向けに縦の隙間を少し詰めました */
             width: 280px;
             transition: opacity 0.2s;
         }
@@ -86,16 +91,16 @@
         /* ロック中（入力禁止時）のスタイル */
         .keypad.locked {
             opacity: 0.3;
-            pointer-events: none; /* タップを完全に無効化 */
+            pointer-events: none;
         }
 
         .key {
-            width: 75px;
-            height: 75px;
+            width: 72px;  /* わずかに縮小 */
+            height: 72px; /* わずかに縮小 */
             border-radius: 50%;
             background-color: #1c1c1e;
             color: #ffffff;
-            font-size: 2rem;
+            font-size: 1.8rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -120,23 +125,23 @@
             opacity: 0.5;
         }
 
-        /* コントロールボタン群 */
+        /* コントロールボタン群（3つ横並び） */
         .controls {
-            margin-top: 30px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
+            margin-top: 25px;
+            width: 320px;
         }
 
         .btn-row {
             display: flex;
-            gap: 10px;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
         }
 
         button {
-            padding: 10px 16px;
-            font-size: 0.85rem;
+            flex: 1;
+            padding: 10px 4px;
+            font-size: 0.8rem;
             font-weight: bold;
             cursor: pointer;
             border-radius: 6px;
@@ -144,6 +149,8 @@
             background: #1c1c1e;
             color: white;
             transition: background 0.2s;
+            white-space: nowrap;
+            text-align: center;
         }
 
         button:disabled {
@@ -168,16 +175,20 @@
             background: #2c1a1a;
             color: #ff5252;
             border: 1px solid #ff5252;
-            padding: 6px 12px;
-            font-size: 0.75rem;
+        }
+
+        /* メメニューに戻るの位置 */
+        .back-container {
+            margin-top: 20px;
+            text-align: center;
         }
 
         .back-btn {
             display: inline-block;
-            margin-top: 25px;
             color: #888;
             font-size: 14px;
             text-decoration: none;
+            padding: 5px 10px;
         }
     </style>
 </head>
@@ -186,12 +197,12 @@
     <div id="status">パスコード登録ステップ</div>
     <div id="message">新しいパスコードを入力 (0/5)</div>
     
+    <div id="timer-display">タイム: 0.00 秒</div>
+
     <div class="counter-container">
         <div>成功: <span id="success-count" class="count-success">0</span> 回</div>
         <div>失敗: <span id="error-count" class="count-error">0</span> 回</div>
     </div>
-
-    <div id="timer-display">タイム: 0.00 秒</div>
 
     <div class="dots-container">
         <div class="dot" id="dot0"></div>
@@ -220,11 +231,11 @@
         <div class="btn-row">
             <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
             <button id="actionBtn" class="action-btn" onclick="switchMode()" disabled>認証モードへ移行</button>
+            <button class="reset-count-btn" onclick="resetCounters()">カウントリセット</button>
         </div>
-        <button class="reset-count-btn" onclick="resetCounters()">カウントのみリセット</button>
     </div>
 
-    <div>
+    <div class="back-container">
         <a href="index.html" class="back-btn">メニューに戻る</a>
     </div>
 
@@ -241,20 +252,17 @@
         let currentInput = '';
         let savedPassword = '';
 
-        // カウント用変数
         let successCount = 0;
         let errorCount = 0;
 
-        // タイマー用変数
         let startTime = null;
         let timerInterval = null;
         let isTiming = false;
 
-        const MAX_LENGTH = 5; // 桁数
+        const MAX_LENGTH = 5; 
 
-        // --- 初期化処理（ローカルストレージからの読み込み） ---
+        // --- 初期化処理 ---
         function initApp() {
-            // パスコードの読込
             const localPassword = localStorage.getItem("savedPassword");
             if (localPassword && localPassword.length === MAX_LENGTH) {
                 savedPassword = localPassword;
@@ -274,7 +282,6 @@
                 actionBtn.disabled = true;
             }
 
-            // カウントの読込
             successCount = parseInt(localStorage.getItem("pass_successCount")) || 0;
             errorCount = parseInt(localStorage.getItem("pass_errorCount")) || 0;
             updateCounterDisplay();
@@ -297,7 +304,6 @@
             if (navigator.vibrate) navigator.vibrate(50);
         }
 
-        // タイマー制御用関数
         function startTimer() {
             isTiming = true;
             startTime = performance.now();
@@ -321,7 +327,6 @@
             timerDisplay.style.color = "#00ff66";
         }
 
-        // 数字が押されたとき
         function pressKey(num) {
             if (currentInput.length >= MAX_LENGTH || keypad.classList.contains('locked')) return;
             if (messageText.style.color === 'rgb(244, 67, 54)' || messageText.style.color === 'rgb(76, 175, 80)') return; 
@@ -346,7 +351,6 @@
             }
         }
 
-        // 「削除」が押されたとき
         function pressDelete() {
             if (keypad.classList.contains('locked')) return;
             if (messageText.style.color === 'rgb(244, 67, 54)' || messageText.style.color === 'rgb(76, 175, 80)') return; 
@@ -365,7 +369,6 @@
             }
         }
 
-        // 画面の丸（ドット）の表示を更新
         function updateDots() {
             for (let i = 0; i < MAX_LENGTH; i++) {
                 const dot = document.getElementById(`dot${i}`);
@@ -377,7 +380,6 @@
             }
         }
 
-        // 入力完了時の処理
         function handleInputComplete() {
             const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
 
@@ -403,7 +405,6 @@
                     timerDisplay.style.color = '#4caf50';
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
 
-                    // 成功数カウントアップ
                     successCount++;
                     localStorage.setItem("pass_successCount", successCount);
 
@@ -417,7 +418,6 @@
                     timerDisplay.style.color = '#f44336';
                     if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
 
-                    // 失敗数カウントアップ
                     errorCount++;
                     localStorage.setItem("pass_errorCount", errorCount);
                 }
@@ -426,7 +426,6 @@
             currentInput = '';
         }
 
-        // リスタートボタン
         function restartInputOnly() {
             keypad.classList.remove('locked');
             currentInput = '';
@@ -452,7 +451,6 @@
             if (navigator.vibrate) navigator.vibrate(100);
         }
 
-        // モード切り替えボタン
         function switchMode() {
             resetTimerDisplay();
             keypad.classList.remove('locked');
