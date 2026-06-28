@@ -169,6 +169,41 @@
             }
         }
 
+        // --- ★初期化処理（ローカルストレージからの読み込み） ---
+        function initApp() {
+            const localPattern = localStorage.getItem("savedPattern");
+            if (localPattern) {
+                try {
+                    savedPattern = JSON.parse(localPattern);
+                    if (Array.isArray(savedPattern) && savedPattern.length >= 3) {
+                        isAuthMode = true; // 最初から認証モードにする
+                        statusText.innerText = "パターン認証モード実行中";
+                        statusText.style.color = "#ffd54f";
+                        messageText.style.color = "#ffffff";
+                        messageText.innerText = "保存されたパターンがあります。入力して解除してください";
+                        actionBtn.innerText = "登録からやり直す";
+                        actionBtn.disabled = false;
+                    } else {
+                        savedPattern = [];
+                    }
+                } catch (e) {
+                    savedPattern = [];
+                }
+            }
+
+            if (savedPattern.length === 0) {
+                statusText.innerText = "パターン登録ステップ";
+                statusText.style.color = "#aaaaaa";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "新しいパターンを描いてください";
+                actionBtn.innerText = "認証モードへ移行";
+                actionBtn.disabled = true;
+            }
+
+            resetTimerDisplay();
+            draw();
+        }
+
         // 描画
         function draw(isError = false) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -311,6 +346,10 @@
             if (!isAuthMode) {
                 // 【登録モード】での入力完了
                 savedPattern = [...selectedCircles];
+                
+                // ★ローカルストレージに配列データを文字列化して保存
+                localStorage.setItem("savedPattern", JSON.stringify(savedPattern));
+
                 timerDisplay.innerHTML = `登録タイム: ${finalTime} 秒`;
                 messageText.innerHTML = `パターン登録完了！「認証モードへ移行」を押してください。`;
                 actionBtn.disabled = false;
@@ -348,7 +387,7 @@
             draw(true);
         }
 
-        // リスタートボタン（これを押すまでタイマーと入力ロックが解除されない。一致時も有効）
+        // リスタートボタン
         function restartInputOnly() {
             canvasInputLocked = false;
             canvasContainer.classList.remove('locked');
@@ -364,6 +403,10 @@
                 messageText.innerText = "登録データを維持してリスタートしました。";
             } else {
                 savedPattern = [];
+                
+                // ★登録画面でのリスタート時にストレージを削除
+                localStorage.removeItem("savedPattern");
+
                 statusText.innerText = "パターン登録ステップ";
                 statusText.style.color = "#aaaaaa";
                 messageText.style.color = "#ffffff";
@@ -392,6 +435,10 @@
             } else {
                 isAuthMode = false;
                 savedPattern = [];
+                
+                // ★「登録からやり直す」ときはストレージデータを明示的に消去
+                localStorage.removeItem("savedPattern");
+
                 statusText.innerText = "パターン登録ステップ";
                 statusText.style.color = "#aaaaaa";
                 messageText.style.color = "#ffffff";
@@ -409,7 +456,8 @@
         window.addEventListener('touchmove', moveHandler, { passive: false });
         window.addEventListener('touchend', endHandler);
 
-        draw();
+        // ★アプリ起動処理の呼び出し
+        initApp();
     </script>
 </body>
 </html>
