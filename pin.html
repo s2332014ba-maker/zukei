@@ -28,7 +28,6 @@
             text-transform: uppercase;
         }
 
-        /* ★高さを自動調整にし、2行になっても被らないように修正 */
         #message {
             font-size: 1.1rem;
             margin-bottom: 12px;
@@ -39,7 +38,6 @@
             line-height: 1.4;
         }
 
-        /* ★余白を微調整 */
         #timer-display {
             font-size: 0.95rem;
             color: #00ff66;
@@ -48,7 +46,6 @@
             height: 20px;
         }
 
-        /* ★位置を下げたカウンターのスタイル調整 */
         .counter-container {
             display: flex;
             gap: 20px;
@@ -83,7 +80,7 @@
         .keypad {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px 25px; /* スマホ向けに縦の隙間を少し詰めました */
+            gap: 12px 25px;
             width: 280px;
             transition: opacity 0.2s;
         }
@@ -94,9 +91,10 @@
             pointer-events: none;
         }
 
+        /* 数字キーのベース（指を離したときのじわっと戻るアニメーション） */
         .key {
-            width: 72px;  /* わずかに縮小 */
-            height: 72px; /* わずかに縮小 */
+            width: 72px;  
+            height: 72px; 
             border-radius: 50%;
             background-color: #1c1c1e;
             color: #ffffff;
@@ -107,25 +105,33 @@
             cursor: pointer;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
-            transition: background-color 0.1s;
+            /* 離したときは0.4秒かけて元の暗さに戻る */
+            transition: background-color 0.4s ease-out, color 0.4s ease-out;
         }
 
-        .key:active {
-            background-color: #3a3a3c;
+        /* ★数字キーをタップした瞬間（ホールド中）の明滅エフェクト */
+        .key:not(.text-key):active {
+            background-color: #e5e5ea; /* iPhoneに近い高輝度グレー */
+            color: #000000;            /* 文字色を黒に反転 */
+            transition: none;          /* 押した瞬間は遅延なしで即座に発光 */
         }
 
-        /* 特殊ボタン（文字や機能） */
+        /* 特殊ボタン（文字や機能：削除など） */
         .key.text-key {
             background-color: transparent;
             font-size: 0.9rem;
             letter-spacing: 1px;
+            transition: opacity 0.3s ease-out;
         }
+        
+        /* 削除ボタンをタップしたときは不透明度を変更 */
         .key.text-key:active {
             background-color: transparent;
-            opacity: 0.5;
+            opacity: 0.3;
+            transition: none;
         }
 
-        /* コントロールボタン群（3つ横並び） */
+        /* コントロールボタン群 */
         .controls {
             margin-top: 25px;
             width: 320px;
@@ -177,7 +183,6 @@
             border: 1px solid #ff5252;
         }
 
-        /* メメニューに戻るの位置 */
         .back-container {
             margin-top: 20px;
             text-align: center;
@@ -261,7 +266,6 @@
 
         const MAX_LENGTH = 5; 
 
-        // --- 初期化処理 ---
         function initApp() {
             const localPassword = localStorage.getItem("savedPassword");
             if (localPassword && localPassword.length === MAX_LENGTH) {
