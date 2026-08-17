@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>スマホ風 フリック認証</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #status {
+            font-size: 0.8rem;
+            color: #888888;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        #message {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            min-height: 24px;
+            height: auto;
+            text-align: center;
+            max-width: 90%;
+            line-height: 1.4;
+        }
+
+        #timer-display {
+            font-size: 0.95rem;
+            color: #00ff66;
+            font-family: monospace;
+            margin-bottom: 10px;
+            height: 20px;
+        }
+
+        .counter-container {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 20px; 
+            color: #aaaaaa;
+        }
+        .count-success { color: #4caf50; font-weight: bold; }
+        .count-error { color: #f44336; font-weight: bold; }
+
+        /* 入力中の矢印ドット表示 */
+        .dots-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            height: 32px;
+            align-items: center;
+        }
+
+        .dot {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            background-color: transparent;
+            transition: all 0.15s ease;
+        }
+
+        .dot.filled {
+            background-color: #ffffff;
+        }
+
+        .dot svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: #000000;
+            stroke-width: 3.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* フリック操作パッドエリア */
+        .flick-pad-container {
+            position: relative;
+            width: 240px;
+            height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            transition: opacity 0.2s;
+        }
+
+        .flick-pad-container.locked {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* ガイド矢印の背景 */
+        .flick-guide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 1px dashed #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .guide-arrow {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .guide-arrow svg {
+            width: 100%;
+            height: 100%;
+            fill: none;
+            stroke: #aaaaaa;
+            stroke-width: 3.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* 8方向ガイドの位置決め */
+        .ga-u  { top: 8px; }
+        .ga-ur { top: 22px; right: 22px; }
+        .ga-r  { right: 8px; }
+        .ga-dr { bottom: 22px; right: 22px; }
+        .ga-d  { bottom: 8px; }
+        .ga-dl { bottom: 22px; left: 22px; }
+        .ga-l  { left: 8px; }
+        .ga-ul { top: 22px; left: 22px; }
+
+        /* 中央のタッチノブ（追従・復元アニメーション調整） */
+        .flick-knob {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background-color: #1c1c1e;
+            border: 2px solid #333;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            cursor: pointer;
+            user-select: none;
+            z-index: 2;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            /* 指離し時に弾むような挙動を設定 */
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
+            will-change: transform;
+        }
+
+        /* ドラッグ中は即座に指へ追従させる */
+        .flick-knob.dragging {
+            transition: background-color 0.2s !important;
+        }
+
+        .flick-knob:active, .flick-knob.active {
+            background-color: #e5e5ea;
+            color: #000000;
+        }
+
+        /* 削除ボタン */
+        .delete-btn-container {
+            height: 30px;
+            margin-bottom: 10px;
+        }
+
+        .text-key {
+            background: transparent;
+            color: #888;
+            border: none;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            cursor: pointer;
+            padding: 5px 15px;
+        }
+
+        .text-key:active {
+            opacity: 0.3;
+        }
+
+        /* コントロールボタン群 */
+        .controls {
+            margin-top: 15px;
+            width: 320px;
+        }
+
+        .btn-row {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            border: none;
+            background: #1c1c1e;
+            color: white;
+            transition: background 0.2s;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        button:disabled {
+            background: #111;
+            color: #444;
+            cursor: not-allowed;
+            border: 1px solid #222;
+        }
+
+        button.action-btn {
+            background: #007bff;
+            color: white;
+        }
+
+        button.restart-btn {
+            background: #2e2a14;
+            color: #ffd54f;
+            border: 1px solid #ffd54f;
+        }
+
+        button.reset-count-btn {
+            background: #2c1a1a;
+            color: #ff5252;
+            border: 1px solid #ff5252;
+        }
+
+        .back-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .back-btn {
+            display: inline-block;
+            color: #888;
+            font-size: 14px;
+            text-decoration: none;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="status">フリックパターン登録ステップ</div>
+    <div id="message">新しいパターンを入力 (0/5)</div>
+    
+    <div id="timer-display">タイム: 0.00 秒</div>
+
+    <div class="counter-container">
+        <div>成功: <span id="success-count" class="count-success">0</span> 回</div>
+        <div>失敗: <span id="error-count" class="count-error">0</span> 回</div>
+    </div>
+
+    <div class="dots-container">
+        <div class="dot" id="dot0"></div>
+        <div class="dot" id="dot1"></div>
+        <div class="dot" id="dot2"></div>
+        <div class="dot" id="dot3"></div>
+        <div class="dot" id="dot4"></div>
+    </div>
+
+    <div class="flick-pad-container" id="flickPad">
+        <div class="flick-guide">
+            <span class="guide-arrow ga-u"><svg viewBox="0 0 24 24"><path d="M12 21V3M5 10l7-7 7 7"/></svg></span>
+            <span class="guide-arrow ga-ur"><svg viewBox="0 0 24 24"><path d="M6 18L18 6M9 6h9v9"/></svg></span>
+            <span class="guide-arrow ga-r"><svg viewBox="0 0 24 24"><path d="M3 12h18M14 5l7 7-7 7"/></svg></span>
+            <span class="guide-arrow ga-dr"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 9v9h-9"/></svg></span>
+            <span class="guide-arrow ga-d"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 14l7 7 7-7"/></svg></span>
+            <span class="guide-arrow ga-dl"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M15 18H6V9"/></svg></span>
+            <span class="guide-arrow ga-l"><svg viewBox="0 0 24 24"><path d="M21 12H3M10 5l-7 7 7 7"/></svg></span>
+            <span class="guide-arrow ga-ul"><svg viewBox="0 0 24 24"><path d="M18 18L6 6M6 15V6h9"/></svg></span>
+        </div>
+        <div class="flick-knob" id="knob">FLICK</div>
+    </div>
+
+    <div class="delete-btn-container">
+        <button class="text-key" onclick="pressDelete()">1文字削除</button>
+    </div>
+
+    <div class="controls">
+        <div class="btn-row">
+            <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
+            <button id="actionBtn" class="action-btn" onclick="switchMode()" disabled>認証モードへ移行</button>
+            <button class="reset-count-btn" onclick="resetCounters()">カウントリセット</button>
+        </div>
+    </div>
+
+    <div class="back-container">
+        <a href="index.html" class="back-btn">メニューに戻る</a>
+    </div>
+
+    <script>
+        const statusText = document.getElementById('status');
+        const messageText = document.getElementById('message');
+        const timerDisplay = document.getElementById('timer-display');
+        const flickPad = document.getElementById('flickPad');
+        const knob = document.getElementById('knob');
+        const actionBtn = document.getElementById('actionBtn');
+        const successCountText = document.getElementById('success-count');
+        const errorCountText = document.getElementById('error-count');
+        
+        let isAuthMode = false;
+        let currentInput = [];
+        let savedPassword = [];
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        let startTime = null;
+        let timerInterval = null;
+        let isTiming = false;
+
+        const MAX_LENGTH = 5; 
+        const MIN_FLICK_DISTANCE = 30;
+        const MAX_DRAG_DISTANCE = 65; // ドラッグ可能範囲を少し拡大
+
+        const SVG_PATHS = {
+            'u':  '<path d="M12 21V3M5 10l7-7 7 7"/>',
+            'ur': '<path d="M6 18L18 6M9 6h9v9"/>',
+            'r':  '<path d="M3 12h18M14 5l7 7-7 7"/>',
+            'dr': '<path d="M6 6l12 12M18 9v9h-9"/>',
+            'd':  '<path d="M12 3v18M5 14l7 7 7-7"/>',
+            'dl': '<path d="M18 6L6 18M15 18H6V9"/>',
+            'l':  '<path d="M21 12H3M10 5l-7 7 7 7"/>',
+            'ul': '<path d="M18 18L6 6M6 15V6h9"/>'
+        };
+
+        const DIRECTIONS = [
+            { key: 'u',  min: -112.5, max: -67.5 },
+            { key: 'ur', min: -67.5,  max: -22.5 },
+            { key: 'r',  min: -22.5,  max: 22.5 },
+            { key: 'dr', min: 22.5,   max: 67.5 },
+            { key: 'd',  min: 67.5,   max: 112.5 },
+            { key: 'dl', min: 112.5,  max: 157.5 },
+            { key: 'ul', min: -157.5, max: -112.5 }
+        ];
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let isTouching = false;
+
+        function initApp() {
+            const localPassword = localStorage.getItem("savedFlickPassword");
+            if (localPassword) {
+                try {
+                    savedPassword = JSON.parse(localPassword);
+                } catch(e) {
+                    savedPassword = [];
+                }
+            }
+
+            if (savedPassword && savedPassword.length === MAX_LENGTH) {
+                isAuthMode = true;
+                statusText.innerText = "フリック認証モード実行中";
+                statusText.style.color = "#ffca28";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "保存されたパターンがあります。入力して解除してください。";
+                actionBtn.innerText = "登録からやり直す";
+                actionBtn.disabled = false;
+            } else {
+                statusText.innerText = "フリックパターン登録ステップ";
+                statusText.style.color = "#888888";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "新しいパターンを入力 (0/5)";
+                actionBtn.innerText = "認証モードへ移行";
+                actionBtn.disabled = true;
+            }
+
+            successCount = parseInt(localStorage.getItem("flick_successCount")) || 0;
+            errorCount = parseInt(localStorage.getItem("flick_errorCount")) || 0;
+            updateCounterDisplay();
+
+            resetTimerDisplay();
+            updateDots();
+            setupFlickEvents();
+        }
+
+        function setupFlickEvents() {
+            const startHandler = (e) => {
+                if (currentInput.length >= MAX_LENGTH || flickPad.classList.contains('locked')) return;
+                if (messageText.style.color === 'rgb(244, 67, 54)' || messageText.style.color === 'rgb(76, 175, 80)') return;
+
+                isTouching = true;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                touchStartX = clientX;
+                touchStartY = clientY;
+
+                knob.classList.add('active');
+                knob.classList.add('dragging'); // アニメーション遅延を一時オフ
+            };
+
+            const moveHandler = (e) => {
+                if (!isTouching) return;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                const deltaX = clientX - touchStartX;
+                const deltaY = clientY - touchStartY;
+
+                const rawDistance = Math.hypot(deltaX, deltaY);
+                // ドラッグ時の移動制限と手ごたえの設定
+                const distance = Math.min(rawDistance, MAX_DRAG_DISTANCE);
+                const angle = Math.atan2(deltaY, deltaX);
+                
+                const moveX = Math.cos(angle) * distance;
+                const moveY = Math.sin(angle) * distance;
+                
+                knob.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            };
+
+            const endHandler = (e) => {
+                if (!isTouching) return;
+                isTouching = false;
+                
+                knob.classList.remove('active');
+                knob.classList.remove('dragging'); // 弾むアニメーションを有効化
+                knob.style.transform = 'translate(0px, 0px)'; // 元の位置に戻す
+
+                const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+                const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+
+                const deltaX = clientX - touchStartX;
+                const deltaY = clientY - touchStartY;
+                const distance = Math.hypot(deltaX, deltaY);
+
+                if (distance >= MIN_FLICK_DISTANCE) {
+                    const angleDeg = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+                    const direction = getDirectionFromAngle(angleDeg);
+                    if (direction) {
+                        recordInput(direction);
+                    }
+                }
+            };
+
+            knob.addEventListener('touchstart', startHandler, {passive: true});
+            window.addEventListener('touchmove', moveHandler, {passive: true});
+            window.addEventListener('touchend', endHandler, {passive: true});
+
+            knob.addEventListener('mousedown', startHandler);
+            window.addEventListener('mousemove', moveHandler);
+            window.addEventListener('mouseup', endHandler);
+        }
+
+        function getDirectionFromAngle(deg) {
+            for (let d of DIRECTIONS) {
+                if (deg >= d.min && deg < d.max) {
+                    return d.key;
+                }
+            }
+            return 'l';
+        }
+
+        function recordInput(key) {
+            if (!isTiming && currentInput.length === 0) {
+                startTimer();
+                timerDisplay.style.color = "#00ff66";
+            }
+
+            currentInput.push(key);
+            updateDots();
+
+            if (!isAuthMode) {
+                messageText.innerText = `新しいパターンを入力 (${currentInput.length}/${MAX_LENGTH})`;
+            }
+
+            if (navigator.vibrate) navigator.vibrate(20);
+
+            if (currentInput.length === MAX_LENGTH) {
+                stopTimer();
+                setTimeout(handleInputComplete, 200);
+            }
+        }
+
+        function updateDots() {
+            for (let i = 0; i < MAX_LENGTH; i++) {
+                const dot = document.getElementById(`dot${i}`);
+                if (i < currentInput.length) {
+                    dot.classList.add('filled');
+                    const path = SVG_PATHS[currentInput[i]];
+                    dot.innerHTML = `<svg viewBox="0 0 24 24">${path}</svg>`;
+                } else {
+                    dot.classList.remove('filled');
+                    dot.innerHTML = '';
+                }
+            }
+        }
+
+        function pressDelete() {
+            if (flickPad.classList.contains('locked')) return;
+            if (messageText.style.color === 'rgb(244, 67, 54)' || messageText.style.color === 'rgb(76, 175, 80)') return; 
+            
+            if (currentInput.length > 0) {
+                currentInput.pop();
+                updateDots();
+                
+                if (!isAuthMode) {
+                    messageText.innerText = currentInput.length > 0 ? `新しいパターンを入力 (${currentInput.length}/${MAX_LENGTH})` : `新しいパターンを入力 (0/5)`;
+                }
+
+                if (currentInput.length === 0) {
+                    resetTimerDisplay();
+                }
+            }
+        }
+
+        function handleInputComplete() {
+            const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+
+            if (!isAuthMode) {
+                savedPassword = [...currentInput];
+                flickPad.classList.add('locked');
+                localStorage.setItem("savedFlickPassword", JSON.stringify(savedPassword));
+                
+                timerDisplay.innerHTML = `登録タイム: ${finalTime} 秒`;
+                messageText.innerHTML = `パターン登録完了！「認証モードへ移行」を押してください。`;
+                actionBtn.disabled = false;
+                
+            } else {
+                flickPad.classList.add('locked');
+
+                const isMatch = currentInput.every((val, idx) => val === savedPassword[idx]);
+
+                if (isMatch) {
+                    statusText.innerText = "認証成功 / ACCESS GRANTED";
+                    statusText.style.color = "#4caf50";
+                    messageText.style.color = '#4caf50';
+                    messageText.innerText = "パターン一致！リスタートで再挑戦できます";
+                    
+                    timerDisplay.innerHTML = `突破タイム: ${finalTime} 秒！`;
+                    timerDisplay.style.color = '#4caf50';
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
+
+                    successCount++;
+                    localStorage.setItem("flick_successCount", successCount);
+
+                } else {
+                    statusText.innerText = "認証失敗 / ACCESS DENIED";
+                    statusText.style.color = "#f44336";
+                    messageText.style.color = '#f44336';
+                    messageText.innerText = "パターンが違います。リスタートしてください";
+                    
+                    timerDisplay.innerHTML = `失敗タイム: ${finalTime} 秒`;
+                    timerDisplay.style.color = '#f44336';
+                    if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+
+                    errorCount++;
+                    localStorage.setItem("flick_errorCount", errorCount);
+                }
+                updateCounterDisplay();
+            }
+            currentInput = [];
+        }
+
+        function updateCounterDisplay() {
+            successCountText.innerText = successCount;
+            errorCountText.innerText = errorCount;
+        }
+
+        function resetCounters() {
+            successCount = 0;
+            errorCount = 0;
+            localStorage.setItem("flick_successCount", 0);
+            localStorage.setItem("flick_errorCount", 0);
+            updateCounterDisplay();
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function startTimer() {
+            isTiming = true;
+            startTime = performance.now();
+            timerInterval = setInterval(() => {
+                const elapsedTime = (performance.now() - startTime) / 1000;
+                timerDisplay.innerHTML = `タイム: ${elapsedTime.toFixed(2)} 秒`;
+            }, 50);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            isTiming = false;
+        }
+
+        function resetTimerDisplay() {
+            stopTimer();
+            timerDisplay.innerHTML = "タイム: 0.00 秒";
+            timerDisplay.style.color = "#00ff66";
+        }
+
+        function restartInputOnly() {
+            flickPad.classList.remove('locked');
+            currentInput = [];
+            updateDots();
+            resetTimerDisplay();
+
+            if (isAuthMode) {
+                statusText.innerText = "フリック認証モード実行中";
+                statusText.style.color = "#ffca28";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "登録データを維持してリスタートしました。";
+            } else {
+                savedPassword = [];
+                localStorage.removeItem("savedFlickPassword");
+
+                statusText.innerText = "フリックパターン登録ステップ";
+                statusText.style.color = "#888888";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "新しいパターンを入力 (0/5)";
+                actionBtn.disabled = true;
+                actionBtn.innerText = "認証モードへ移行";
+            }
+            if (navigator.vibrate) navigator.vibrate(100);
+        }
+
+        function switchMode() {
+            resetTimerDisplay();
+            flickPad.classList.remove('locked');
+            currentInput = [];
+            updateDots();
+
+            if (!isAuthMode) {
+                isAuthMode = true;
+                statusText.innerText = "フリック認証モード実行中";
+                statusText.style.color = "#ffca28";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "登録したパターンを入力して解除してください";
+                actionBtn.innerText = "登録からやり直す";
+            } else {
+                isAuthMode = false;
+                savedPassword = [];
+                localStorage.removeItem("savedFlickPassword");
+
+                statusText.innerText = "フリックパターン登録ステップ";
+                statusText.style.color = "#888888";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "新しいパターンを入力 (0/5)";
+                actionBtn.innerText = "認証モードへ移行";
+                actionBtn.disabled = true;
+            }
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
