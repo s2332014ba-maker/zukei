@@ -43,6 +43,7 @@
             cursor: pointer;
             backdrop-filter: blur(5px);
             transition: background 0.2s;
+            flex: unset; /* flexの影響を受けないように */
         }
 
         .menu-btn:active {
@@ -77,6 +78,7 @@
             border-bottom: 1px solid #2c2c2e;
             border-radius: 0;
             width: 100%;
+            flex: unset;
         }
 
         .menu-item:last-child {
@@ -106,19 +108,21 @@
             line-height: 1.4;
         }
 
-        /* --- 固定モード用 動画ボタン --- */
+        /* --- 固定モード用 動画ボタン（サイズが大きくなりすぎないよう調整） --- */
         .video-btn {
             background: #00bcd4;
             color: #000;
             display: none;
             margin-bottom: 10px;
-            padding: 6px 14px;
-            font-size: 0.8rem;
+            padding: 8px 16px;
+            font-size: 0.85rem;
             font-weight: bold;
             border-radius: 6px;
             border: none;
             cursor: pointer;
             transition: background 0.2s;
+            flex: unset !important; /* flexでの自動拡大を確実に防止 */
+            width: auto !important;
         }
 
         .video-btn:hover {
@@ -145,22 +149,32 @@
         }
 
         #fullscreen-video {
-            width: 100%;
-            max-width: 800px;
-            max-height: 80vh;
+            width: 90%;
+            max-width: 700px;
+            max-height: 75vh;
             outline: none;
             object-fit: contain;
+            border-radius: 8px;
         }
 
+        /* 閉じるボタンが大きくならないよう調整 */
         .close-video-btn {
-            margin-top: 20px;
-            padding: 10px 24px;
-            background: #f44336;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
+            margin-top: 15px;
+            padding: 8px 24px;
+            background: #333336;
+            color: #ffffff;
+            border: 1px solid #555558;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: normal;
             cursor: pointer;
+            transition: background 0.2s;
+            flex: unset !important;
+            width: auto !important;
+        }
+
+        .close-video-btn:active {
+            background: #444448;
         }
 
         #timer-display {
@@ -262,6 +276,7 @@
             width: 100%;
         }
 
+        /* 汎用ボタン（下部のコントロール用） */
         button {
             flex: 1;
             padding: 10px 4px;
@@ -376,7 +391,6 @@
 
     <!-- 動画オーバーレイ -->
     <div id="video-overlay">
-        <!-- srcをご自身の動画ファイル名に変更してください -->
         <video id="fullscreen-video" controls playsinline webkit-playsinline>
             <source src="pin.mp4" type="video/mp4">
             お使いのブラウザは動画タグをサポートしていません。
@@ -400,10 +414,9 @@
         const videoOverlay = document.getElementById('video-overlay');
         const fullscreenVideo = document.getElementById('fullscreen-video');
         
-        // 固定モード時の答えを設定（5桁）
         const FIXED_PASSWORD = "12345";
 
-        let systemMode = 'normal'; // 'normal' または 'fixed'
+        let systemMode = 'normal';
         let isAuthMode = false;
         let currentInput = '';
         let savedPassword = '';
@@ -417,7 +430,6 @@
 
         const MAX_LENGTH = 5; 
 
-        // メニューの開閉
         function toggleMenu() {
             dropdownMenu.classList.toggle('show');
         }
@@ -428,7 +440,6 @@
             }
         });
 
-        // システムモード切り替え（通常 / 固定答え）
         function selectSystemMode(mode) {
             dropdownMenu.classList.remove('show');
             if (systemMode === mode) return;
@@ -445,7 +456,6 @@
                 messageText.style.color = "#ffffff";
                 messageText.innerText = `固定パスコードの解除に挑戦してください`;
                 
-                // 固定モードでは青いボタンを非表示にし、動画ボタンを表示
                 actionBtn.style.display = 'none';
                 videoBtn.style.display = 'inline-block';
             } else {
@@ -453,7 +463,6 @@
                 modeFixedBtn.classList.remove('active');
                 isAuthMode = false;
                 
-                // 通常モードでは青いボタンを表示、動画ボタンを非表示
                 actionBtn.style.display = 'block';
                 videoBtn.style.display = 'none';
                 
@@ -635,11 +644,10 @@
             currentInput = '';
         }
 
-        // --- 動画再生関連の関数（フルスクリーン処理を削除） ---
         function openVideo() {
             videoOverlay.classList.add('show');
             fullscreenVideo.currentTime = 0;
-            
+            fullscreenVideo.play().catch(() => {});
         }
 
         function closeVideo() {
