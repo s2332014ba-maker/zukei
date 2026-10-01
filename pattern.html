@@ -7,8 +7,8 @@
     <style>
         body {
             margin: 0;
-            padding: 0;
-            background-color: #121212;
+            padding: 20px 0; /* 上下にゆとりを持たせる */
+            background-color: #000000;
             color: #ffffff;
             font-family: Arial, sans-serif;
             display: flex;
@@ -18,40 +18,181 @@
             min-height: 100vh;
             overflow: hidden;
             touch-action: none;
+            position: relative;
+            box-sizing: border-box;
         }
 
+        /* --- 右上歯車メニューのスタイル --- */
+        .settings-menu-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .gear-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: #1a1a1e;
+            border: 1px solid #44444a;
+            color: #d1c4e9;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            outline: none;
+            transition: background 0.2s;
+        }
+
+        .gear-btn:hover {
+            background-color: #2a2a30;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 58px;
+            right: 0;
+            width: 210px;
+            background-color: #1a1a1e;
+            border: 1px solid #2d2d35;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        .dropdown-menu.show {
+            display: flex;
+        }
+
+        .dropdown-item {
+            padding: 14px 16px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #ffffff;
+            background: transparent;
+            border: none;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 0;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .dropdown-item:not(:last-child) {
+            border-bottom: 1px solid #2a2a32;
+        }
+
+        .dropdown-item:hover {
+            background-color: #262630;
+        }
+
+        .dropdown-item.active-mode {
+            color: #00aaff;
+        }
+
+        /* --- メインコンテンツのスタイル（被り防止のためマージンを確保） --- */
         #status {
-            font-size: 0.9rem;
-            color: #aaaaaa;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-        }
-
-        #message {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-            height: 28px;
+            font-size: 0.95rem;
+            color: #00aaff;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
             text-align: center;
         }
 
-        /* カウンター表示エリア */
+        #message {
+            font-size: 1.15rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            min-height: 28px;
+            text-align: center;
+            padding: 0 10px;
+        }
+
+        #hint-message {
+            font-size: 0.85rem;
+            color: #888888;
+            margin-bottom: 12px;
+            min-height: 18px;
+            text-align: center;
+        }
+
         .counter-container {
             display: flex;
-            gap: 20px;
+            gap: 24px;
             font-size: 0.9rem;
-            margin-bottom: 15px;
+            margin-bottom: 16px; /* 下との間隔を確保 */
             color: #aaaaaa;
         }
         .count-success { color: #4caf50; font-weight: bold; }
         .count-error { color: #f44336; font-weight: bold; }
 
         #timer-display {
-            font-size: 1rem;
+            font-size: 1.1rem;
             color: #00ff66;
             font-family: monospace;
-            margin-bottom: 15px;
-            height: 20px;
+            margin-bottom: 16px;
+            min-height: 24px;
+        }
+
+        /* --- 固定モード用 動画ボタン --- */
+        .video-btn {
+            background: #00aaff;
+            color: #000;
+            display: none; /* 初期状態は非表示（固定モード時のみ表示） */
+            margin-bottom: 16px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .video-btn:hover {
+            background: #0088cc;
+        }
+
+        /* --- 全画面動画オーバーレイ --- */
+        #video-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #video-overlay.show {
+            display: flex;
+        }
+
+        #fullscreen-video {
+            width: 100%;
+            max-width: 800px;
+            max-height: 80vh;
+            outline: none;
+        }
+
+        .close-video-btn {
+            margin-top: 20px;
+            padding: 10px 24px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
         }
 
         #canvas-container {
@@ -71,9 +212,8 @@
             cursor: pointer;
         }
 
-        /* コントロールボタン群 */
         .controls {
-            margin-top: 30px;
+            margin-top: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -85,12 +225,12 @@
             gap: 10px;
         }
 
-        button {
+        button.action-btn, button.restart-btn, button.reset-count-btn {
             padding: 10px 20px;
             font-size: 0.9rem;
             font-weight: bold;
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 6px;
             border: none;
             background: #333;
             color: white;
@@ -125,7 +265,7 @@
 
         .back-btn {
             display: inline-block;
-            margin-top: 25px;
+            margin-top: 20px;
             color: #888;
             font-size: 14px;
             text-decoration: none;
@@ -134,8 +274,18 @@
 </head>
 <body>
 
-    <div id="status">パターン登録ステップ</div>
+    <!-- 右上歯車メニュー -->
+    <div class="settings-menu-container">
+        <button class="gear-btn" id="gearBtn" onclick="toggleMenu(event)">⚙</button>
+        <div class="dropdown-menu" id="dropdownMenu">
+            <button class="dropdown-item active-mode" id="btnNormalMode" onclick="selectMode('normal')">通常モード (自由登録)</button>
+            <button class="dropdown-item" id="btnFixedMode" onclick="selectMode('fixed')">固定答えモード (固定解)</button>
+        </div>
+    </div>
+
+    <div id="status">通常モード (自由登録)</div>
     <div id="message">新しいパターンを描いてください</div>
+    <div id="hint-message"></div>
 
     <div class="counter-container">
         <div>成功: <span id="success-count" class="count-success">0</span> 回</div>
@@ -144,6 +294,9 @@
 
     <div id="timer-display">タイム: 0.00 秒</div>
     
+    <!-- 固定モード時のみ入力前に表示される動画ボタン -->
+    <button id="videoBtn" class="video-btn" onclick="openVideo()">▶ お手本の動画を見る</button>
+
     <div id="canvas-container">
         <canvas id="lockCanvas" width="320" height="320"></canvas>
     </div>
@@ -160,18 +313,41 @@
         <a href="index.html" class="back-btn">メニューに戻る</a>
     </div>
 
+    <!-- 全画面動画オーバーレイ -->
+    <div id="video-overlay">
+        <!-- srcをご自身の動画ファイル名に変更してください -->
+        <video id="fullscreen-video" controls playsinline preload="auto">
+            <source src="pattern.mp4" type="video/mp4">
+            お使いのブラウザは動画タグをサポートしていません。
+        </video>
+        <button class="close-video-btn" onclick="closeVideo()">閉じる</button>
+    </div>
+
     <script>
         const canvas = document.getElementById('lockCanvas');
         const canvasContainer = document.getElementById('canvas-container');
         const ctx = canvas.getContext('2d');
         const statusText = document.getElementById('status');
         const messageText = document.getElementById('message');
+        const hintText = document.getElementById('hint-message');
         const timerDisplay = document.getElementById('timer-display');
         const actionBtn = document.getElementById('actionBtn');
         const successCountText = document.getElementById('success-count');
         const errorCountText = document.getElementById('error-count');
+        
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        const btnNormalMode = document.getElementById('btnNormalMode');
+        const btnFixedMode = document.getElementById('btnFixedMode');
+        
+        const videoBtn = document.getElementById('videoBtn');
+        const videoOverlay = document.getElementById('video-overlay');
+        const fullscreenVideo = document.getElementById('fullscreen-video');
+
+        // 固定の答えパターン
+        const FIXED_PATTERN = [0, 1, 2, 4, 6, 7, 8];
 
         // 状態管理
+        let isFixedAnswerMode = false;
         let isAuthMode = false;
         let canvasInputLocked = false;
         let savedPattern = [];
@@ -208,39 +384,90 @@
             }
         }
 
-        // --- 初期化処理（ローカルストレージからの読み込み） ---
+        // --- メニューの表示・非表示 ---
+        function toggleMenu(e) {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('show');
+        }
+
+        window.addEventListener('click', () => {
+            if (dropdownMenu.classList.contains('show')) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+
+        // --- モード選択処理 ---
+        function selectMode(mode) {
+            dropdownMenu.classList.remove('show');
+
+            if (mode === 'fixed' && !isFixedAnswerMode) {
+                if (confirm("「固定答えモード」に切り替えますか？")) {
+                    isFixedAnswerMode = true;
+                    btnFixedMode.classList.add('active-mode');
+                    btnNormalMode.classList.remove('active-mode');
+                    isAuthMode = true;
+                    actionBtn.style.display = "none";
+                    initApp();
+                }
+            } else if (mode === 'normal' && isFixedAnswerMode) {
+                if (confirm("「通常モード (自由登録)」に切り替えますか？")) {
+                    isFixedAnswerMode = false;
+                    btnNormalMode.classList.add('active-mode');
+                    btnFixedMode.classList.remove('active-mode');
+                    actionBtn.style.display = "inline-block";
+                    isAuthMode = false;
+                    initApp();
+                }
+            }
+        }
+
+        // --- 初期化処理 ---
         function initApp() {
-            // パターンの読込
-            const localPattern = localStorage.getItem("savedPattern");
-            if (localPattern) {
-                try {
-                    savedPattern = JSON.parse(localPattern);
-                    if (Array.isArray(savedPattern) && savedPattern.length >= 3) {
-                        isAuthMode = true;
-                        statusText.innerText = "パターン認証モード実行中";
-                        statusText.style.color = "#ffd54f";
-                        messageText.style.color = "#ffffff";
-                        messageText.innerText = "保存されたパターンがあります。入力して解除してください";
-                        actionBtn.innerText = "登録からやり直す";
-                        actionBtn.disabled = false;
-                    } else {
+            canvasInputLocked = false;
+            canvasContainer.classList.remove('locked');
+            isSuccessState = false;
+            selectedCircles = [];
+
+            if (isFixedAnswerMode) {
+                statusText.innerText = "固定答えモード (固定解)";
+                statusText.style.color = "#00aaff";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "固定パスコードの解除に挑戦してください";
+                videoBtn.style.display = "inline-block";
+            } else {
+                videoBtn.style.display = "none";
+                hintText.innerText = "";
+                const localPattern = localStorage.getItem("savedPattern");
+                if (localPattern) {
+                    try {
+                        savedPattern = JSON.parse(localPattern);
+                        if (Array.isArray(savedPattern) && savedPattern.length >= 3) {
+                            isAuthMode = true;
+                            statusText.innerText = "パターン認証モード実行中";
+                            statusText.style.color = "#ffd54f";
+                            messageText.style.color = "#ffffff";
+                            messageText.innerText = "保存されたパターンがあります。入力して解除してください";
+                            actionBtn.innerText = "登録からやり直す";
+                            actionBtn.disabled = false;
+                        } else {
+                            savedPattern = [];
+                        }
+                    } catch (e) {
                         savedPattern = [];
                     }
-                } catch (e) {
-                    savedPattern = [];
+                }
+
+                if (savedPattern.length === 0) {
+                    isAuthMode = false;
+                    statusText.innerText = "パターン登録ステップ";
+                    statusText.style.color = "#aaaaaa";
+                    messageText.style.color = "#ffffff";
+                    messageText.innerText = "新しいパターンを描いてください";
+                    actionBtn.innerText = "認証モードへ移行";
+                    actionBtn.disabled = true;
                 }
             }
 
-            if (savedPattern.length === 0) {
-                statusText.innerText = "パターン登録ステップ";
-                statusText.style.color = "#aaaaaa";
-                messageText.style.color = "#ffffff";
-                messageText.innerText = "新しいパターンを描いてください";
-                actionBtn.innerText = "認証モードへ移行";
-                actionBtn.disabled = true;
-            }
-
-            // カウントの読込
             successCount = parseInt(localStorage.getItem("pattern_successCount")) || 0;
             errorCount = parseInt(localStorage.getItem("pattern_errorCount")) || 0;
             updateCounterDisplay();
@@ -255,21 +482,22 @@
         }
 
         function resetCounters() {
-            successCount = 0;
-            errorCount = 0;
-            localStorage.setItem("pattern_successCount", 0);
-            localStorage.setItem("pattern_errorCount", 0);
-            updateCounterDisplay();
-            if (navigator.vibrate) navigator.vibrate(50);
+            if (confirm("成功・失敗のカウントをリセットしますか？")) {
+                successCount = 0;
+                errorCount = 0;
+                localStorage.setItem("pattern_successCount", 0);
+                localStorage.setItem("pattern_errorCount", 0);
+                updateCounterDisplay();
+                if (navigator.vibrate) navigator.vibrate(50);
+            }
         }
 
-        // 描画
         function draw(isError = false) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (selectedCircles.length > 0) {
                 ctx.beginPath();
-                ctx.strokeStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? '#ffd54f' : '#00adb5'));
+                ctx.strokeStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? (isFixedAnswerMode ? '#00aaff' : '#ffd54f') : '#00adb5'));
                 ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -293,12 +521,12 @@
                 ctx.arc(circle.x, circle.y, radius, 0, Math.PI * 2);
                 
                 if (selectedCircles.includes(circle.id)) {
-                    ctx.fillStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? '#ffd54f' : '#00adb5'));
+                    ctx.fillStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? (isFixedAnswerMode ? '#00aaff' : '#ffd54f') : '#00adb5'));
                     ctx.fill();
                     
                     ctx.beginPath();
                     ctx.arc(circle.x, circle.y, radius + 8, 0, Math.PI * 2);
-                    ctx.strokeStyle = isSuccessState ? 'rgba(76, 175, 80, 0.3)' : (isError ? 'rgba(244, 67, 54, 0.3)' : (isAuthMode ? 'rgba(255, 213, 79, 0.3)' : 'rgba(0, 173, 181, 0.3)'));
+                    ctx.strokeStyle = isSuccessState ? 'rgba(76, 175, 80, 0.3)' : (isError ? 'rgba(244, 67, 54, 0.3)' : (isAuthMode ? (isFixedAnswerMode ? 'rgba(0, 170, 255, 0.3)' : 'rgba(255, 213, 79, 0.3)') : 'rgba(0, 173, 181, 0.3)'));
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 } else {
@@ -402,7 +630,9 @@
                 messageText.innerHTML = `パターン登録完了！「認証モードへ移行」を押してください。`;
                 actionBtn.disabled = false;
             } else {
-                if (JSON.stringify(selectedCircles) === JSON.stringify(savedPattern)) {
+                const targetPattern = isFixedAnswerMode ? FIXED_PATTERN : savedPattern;
+
+                if (JSON.stringify(selectedCircles) === JSON.stringify(targetPattern)) {
                     isSuccessState = true;
                     statusText.innerText = "認証成功 / ACCESS GRANTED";
                     statusText.style.color = "#4caf50";
@@ -413,7 +643,6 @@
                     timerDisplay.style.color = '#4caf50';
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
                     
-                    // 成功数カウントアップ
                     successCount++;
                     localStorage.setItem("pattern_successCount", successCount);
                     draw();
@@ -427,13 +656,26 @@
                     timerDisplay.style.color = '#f44336';
                     if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
                     
-                    // 失敗数カウントアップ
                     errorCount++;
                     localStorage.setItem("pattern_errorCount", errorCount);
                     draw(true);
                 }
                 updateCounterDisplay();
             }
+        }
+
+        // --- 動画再生関連の関数 ---
+        function openVideo() {
+            videoOverlay.classList.add('show');
+            fullscreenVideo.currentTime = 0;
+            fullscreenVideo.play().catch(e => {
+                console.log("自動再生がブロックされました:", e);
+            });
+        }
+
+        function closeVideo() {
+            fullscreenVideo.pause();
+            videoOverlay.classList.remove('show');
         }
 
         function showError(msg) {
@@ -443,6 +685,10 @@
         }
 
         function restartInputOnly() {
+            if (!confirm("入力状態をリスタートしますか？")) {
+                return;
+            }
+
             canvasInputLocked = false;
             canvasContainer.classList.remove('locked');
             isSuccessState = false;
@@ -450,7 +696,13 @@
             resetTimerDisplay();
             draw();
 
-            if (isAuthMode) {
+            if (isFixedAnswerMode) {
+                statusText.innerText = "固定答えモード (固定解)";
+                statusText.style.color = "#00aaff";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "固定パスコードの解除に挑戦してください";
+                videoBtn.style.display = "inline-block";
+            } else if (isAuthMode) {
                 statusText.innerText = "パターン認証モード実行中";
                 statusText.style.color = "#ffd54f";
                 messageText.style.color = "#ffffff";
@@ -469,6 +721,16 @@
         }
 
         function switchMode() {
+            if (isAuthMode) {
+                if (!confirm("保存されたパターンを削除し、登録モードに戻りますか？")) {
+                    return;
+                }
+            } else {
+                if (!confirm("現在のパターンで認証モードへ移行しますか？")) {
+                    return;
+                }
+            }
+
             resetTimerDisplay();
             canvasInputLocked = false;
             canvasContainer.classList.remove('locked');
