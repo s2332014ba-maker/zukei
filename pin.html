@@ -18,6 +18,74 @@
             min-height: 100vh;
             overflow: hidden;
             touch-action: none;
+            position: relative;
+        }
+
+        /* 右上メニュー設定 */
+        .top-menu-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 100;
+        }
+
+        .menu-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: background 0.2s;
+        }
+
+        .menu-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 48px;
+            right: 0;
+            background: #1c1c1e;
+            border: 1px solid #333;
+            border-radius: 12px;
+            width: 200px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        .dropdown-menu.show {
+            display: flex;
+        }
+
+        .menu-item {
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: #ddd;
+            background: transparent;
+            border: none;
+            text-align: left;
+            border-bottom: 1px solid #2c2c2e;
+            border-radius: 0;
+            width: 100%;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item.active {
+            color: #007bff;
+            font-weight: bold;
         }
 
         #status {
@@ -30,12 +98,69 @@
 
         #message {
             font-size: 1.1rem;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             min-height: 24px;
             height: auto;
             text-align: center;
             max-width: 90%;
             line-height: 1.4;
+        }
+
+        /* --- 固定モード用 動画ボタン --- */
+        .video-btn {
+            background: #00bcd4;
+            color: #000;
+            display: none;
+            margin-bottom: 10px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .video-btn:hover {
+            background: #00acc1;
+        }
+
+        /* --- 全画面動画オーバーレイ --- */
+        #video-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #video-overlay.show {
+            display: flex;
+        }
+
+        #fullscreen-video {
+            width: 100%;
+            max-width: 800px;
+            max-height: 80vh;
+            outline: none;
+            object-fit: contain;
+        }
+
+        .close-video-btn {
+            margin-top: 20px;
+            padding: 10px 24px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
         }
 
         #timer-display {
@@ -85,13 +210,11 @@
             transition: opacity 0.2s;
         }
 
-        /* ロック中（入力禁止時）のスタイル */
         .keypad.locked {
             opacity: 0.3;
             pointer-events: none;
         }
 
-        /* 数字キーのベース（指を離したときのじわっと戻るアニメーション） */
         .key {
             width: 72px;  
             height: 72px; 
@@ -105,18 +228,15 @@
             cursor: pointer;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
-            /* 離したときは0.4秒かけて元の暗さに戻る */
             transition: background-color 0.4s ease-out, color 0.4s ease-out;
         }
 
-        /* ★数字キーをタップした瞬間（ホールド中）の明滅エフェクト */
         .key:not(.text-key):active {
-            background-color: #e5e5ea; /* iPhoneに近い高輝度グレー */
-            color: #000000;            /* 文字色を黒に反転 */
-            transition: none;          /* 押した瞬間は遅延なしで即座に発光 */
+            background-color: #e5e5ea;
+            color: #000000;
+            transition: none;
         }
 
-        /* 特殊ボタン（文字や機能：削除など） */
         .key.text-key {
             background-color: transparent;
             font-size: 0.9rem;
@@ -124,14 +244,12 @@
             transition: opacity 0.3s ease-out;
         }
         
-        /* 削除ボタンをタップしたときは不透明度を変更 */
         .key.text-key:active {
             background-color: transparent;
             opacity: 0.3;
             transition: none;
         }
 
-        /* コントロールボタン群 */
         .controls {
             margin-top: 25px;
             width: 320px;
@@ -199,9 +317,21 @@
 </head>
 <body>
 
+    <!-- 右上設定メニュー -->
+    <div class="top-menu-container">
+        <button class="menu-btn" onclick="toggleMenu()">⚙</button>
+        <div class="dropdown-menu" id="dropdownMenu">
+            <button class="menu-item active" id="modeNormalBtn" onclick="selectSystemMode('normal')">通常モード (自由登録)</button>
+            <button class="menu-item" id="modeFixedBtn" onclick="selectSystemMode('fixed')">固定答えモード (固定解)</button>
+        </div>
+    </div>
+
     <div id="status">パスコード登録ステップ</div>
     <div id="message">新しいパスコードを入力 (0/5)</div>
     
+    <!-- 固定モード時のみ表示される動画ボタン -->
+    <button id="videoBtn" class="video-btn" onclick="openVideo()">▶ お手本の動画を見る</button>
+
     <div id="timer-display">タイム: 0.00 秒</div>
 
     <div class="counter-container">
@@ -244,6 +374,16 @@
         <a href="index.html" class="back-btn">メニューに戻る</a>
     </div>
 
+    <!-- 動画オーバーレイ -->
+    <div id="video-overlay">
+        <!-- srcをご自身の動画ファイル名に変更してください -->
+        <video id="fullscreen-video" controls playsinline webkit-playsinline>
+            <source src="pin.mp4" type="video/mp4">
+            お使いのブラウザは動画タグをサポートしていません。
+        </video>
+        <button class="close-video-btn" onclick="closeVideo()">閉じる</button>
+    </div>
+
     <script>
         const statusText = document.getElementById('status');
         const messageText = document.getElementById('message');
@@ -252,7 +392,18 @@
         const actionBtn = document.getElementById('actionBtn');
         const successCountText = document.getElementById('success-count');
         const errorCountText = document.getElementById('error-count');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        const modeNormalBtn = document.getElementById('modeNormalBtn');
+        const modeFixedBtn = document.getElementById('modeFixedBtn');
         
+        const videoBtn = document.getElementById('videoBtn');
+        const videoOverlay = document.getElementById('video-overlay');
+        const fullscreenVideo = document.getElementById('fullscreen-video');
+        
+        // 固定モード時の答えを設定（5桁）
+        const FIXED_PASSWORD = "12345";
+
+        let systemMode = 'normal'; // 'normal' または 'fixed'
         let isAuthMode = false;
         let currentInput = '';
         let savedPassword = '';
@@ -266,9 +417,59 @@
 
         const MAX_LENGTH = 5; 
 
+        // メニューの開閉
+        function toggleMenu() {
+            dropdownMenu.classList.toggle('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.top-menu-container')) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+
+        // システムモード切り替え（通常 / 固定答え）
+        function selectSystemMode(mode) {
+            dropdownMenu.classList.remove('show');
+            if (systemMode === mode) return;
+
+            systemMode = mode;
+            
+            if (mode === 'fixed') {
+                modeFixedBtn.classList.add('active');
+                modeNormalBtn.classList.remove('active');
+                isAuthMode = true;
+                savedPassword = FIXED_PASSWORD;
+                statusText.innerText = "固定答えモード (チャレンジ)";
+                statusText.style.color = "#00bcd4";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = `固定パスコードの解除に挑戦してください`;
+                
+                // 固定モードでは青いボタンを非表示にし、動画ボタンを表示
+                actionBtn.style.display = 'none';
+                videoBtn.style.display = 'inline-block';
+            } else {
+                modeNormalBtn.classList.add('active');
+                modeFixedBtn.classList.remove('active');
+                isAuthMode = false;
+                
+                // 通常モードでは青いボタンを表示、動画ボタンを非表示
+                actionBtn.style.display = 'block';
+                videoBtn.style.display = 'none';
+                
+                initApp();
+                return;
+            }
+
+            keypad.classList.remove('locked');
+            currentInput = '';
+            resetTimerDisplay();
+            updateDots();
+        }
+
         function initApp() {
             const localPassword = localStorage.getItem("savedPassword");
-            if (localPassword && localPassword.length === MAX_LENGTH) {
+            if (systemMode === 'normal' && localPassword && localPassword.length === MAX_LENGTH) {
                 savedPassword = localPassword;
                 isAuthMode = true;
                 statusText.innerText = "パスコード認証モード実行中";
@@ -277,7 +478,7 @@
                 messageText.innerText = "保存されたパスコードがあります。入力して解除してください。";
                 actionBtn.innerText = "登録からやり直す";
                 actionBtn.disabled = false;
-            } else {
+            } else if (systemMode === 'normal') {
                 statusText.innerText = "パスコード登録ステップ";
                 statusText.style.color = "#888888";
                 messageText.style.color = "#ffffff";
@@ -285,6 +486,7 @@
                 actionBtn.innerText = "認証モードへ移行";
                 actionBtn.disabled = true;
             }
+            videoBtn.style.display = 'none';
 
             successCount = parseInt(localStorage.getItem("pass_successCount")) || 0;
             errorCount = parseInt(localStorage.getItem("pass_errorCount")) || 0;
@@ -300,6 +502,9 @@
         }
 
         function resetCounters() {
+            if (!confirm("成功・失敗のカウントをリセットしてもよろしいですか？")) {
+                return;
+            }
             successCount = 0;
             errorCount = 0;
             localStorage.setItem("pass_successCount", 0);
@@ -430,13 +635,38 @@
             currentInput = '';
         }
 
+        // --- 動画再生関連の関数（フルスクリーン処理を削除） ---
+        function openVideo() {
+            videoOverlay.classList.add('show');
+            fullscreenVideo.currentTime = 0;
+            
+        }
+
+        function closeVideo() {
+            fullscreenVideo.pause();
+            videoOverlay.classList.remove('show');
+        }
+
         function restartInputOnly() {
+            const confirmMsg = isAuthMode
+                ? "入力状態をクリアしてリスタートしますか？"
+                : "入力状態をリセットして、最初から入力し直しますか？";
+
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
             keypad.classList.remove('locked');
             currentInput = '';
             updateDots();
             resetTimerDisplay();
 
-            if (isAuthMode) {
+            if (systemMode === 'fixed') {
+                statusText.innerText = "固定答えモード (チャレンジ)";
+                statusText.style.color = "#00bcd4";
+                messageText.style.color = "#ffffff";
+                messageText.innerText = "リスタートしました。入力してください。";
+            } else if (isAuthMode) {
                 statusText.innerText = "パスコード認証モード実行中";
                 statusText.style.color = "#ffca28";
                 messageText.style.color = "#ffffff";
@@ -456,6 +686,19 @@
         }
 
         function switchMode() {
+            if (systemMode === 'fixed') {
+                selectSystemMode('normal');
+                return;
+            }
+
+            const confirmMsg = isAuthMode
+                ? "登録されているパスコードを削除して、新規登録からやり直しますか？"
+                : "登録したパスコードで認証モードに移行しますか？";
+
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
             resetTimerDisplay();
             keypad.classList.remove('locked');
             currentInput = '';
