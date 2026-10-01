@@ -7,7 +7,7 @@
     <style>
         body {
             margin: 0;
-            padding: 20px 0; /* 上下にゆとりを持たせる */
+            padding: 20px 0;
             background-color: #000000;
             color: #ffffff;
             font-family: Arial, sans-serif;
@@ -95,7 +95,7 @@
             color: #00aaff;
         }
 
-        /* --- メインコンテンツのスタイル（被り防止のためマージンを確保） --- */
+        /* --- メインコンテンツのスタイル --- */
         #status {
             font-size: 0.95rem;
             color: #00aaff;
@@ -125,7 +125,7 @@
             display: flex;
             gap: 24px;
             font-size: 0.9rem;
-            margin-bottom: 16px; /* 下との間隔を確保 */
+            margin-bottom: 16px;
             color: #aaaaaa;
         }
         .count-success { color: #4caf50; font-weight: bold; }
@@ -143,7 +143,7 @@
         .video-btn {
             background: #00aaff;
             color: #000;
-            display: none; /* 初期状態は非表示（固定モード時のみ表示） */
+            display: none;
             margin-bottom: 16px;
             padding: 8px 16px;
             font-size: 0.85rem;
@@ -182,6 +182,7 @@
             max-width: 800px;
             max-height: 80vh;
             outline: none;
+            object-fit: contain;
         }
 
         .close-video-btn {
@@ -316,8 +317,8 @@
     <!-- 全画面動画オーバーレイ -->
     <div id="video-overlay">
         <!-- srcをご自身の動画ファイル名に変更してください -->
-        <video id="fullscreen-video" controls playsinline preload="auto">
-            <source src="pattern.mp4" type="video/mp4">
+        <video id="fullscreen-video" controls playsinline webkit-playsinline>
+            <source src="sample.mp4" type="video/mp4">
             お使いのブラウザは動画タグをサポートしていません。
         </video>
         <button class="close-video-btn" onclick="closeVideo()">閉じる</button>
@@ -664,10 +665,18 @@
             }
         }
 
-        // --- 動画再生関連の関数 ---
+        // --- 動画再生・自動全画面関連の関数 ---
         function openVideo() {
             videoOverlay.classList.add('show');
             fullscreenVideo.currentTime = 0;
+            
+            // 動画の自動全画面化を実行
+            if (fullscreenVideo.requestFullscreen) {
+                fullscreenVideo.requestFullscreen().catch(err => console.log(err));
+            } else if (fullscreenVideo.webkitRequestFullscreen) { /* Safari / iOS用 */
+                fullscreenVideo.webkitRequestFullscreen();
+            }
+
             fullscreenVideo.play().catch(e => {
                 console.log("自動再生がブロックされました:", e);
             });
@@ -675,6 +684,14 @@
 
         function closeVideo() {
             fullscreenVideo.pause();
+            
+            // 全画面を解除
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(err => console.log(err));
+            } else if (document.webkitFullscreenElement) {
+                document.webkitExitFullscreen();
+            }
+
             videoOverlay.classList.remove('show');
         }
 
