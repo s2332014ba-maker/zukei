@@ -668,9 +668,6 @@
         function openVideo() {
             videoOverlay.classList.add('show');
             fullscreenVideo.currentTime = 0;
-            fullscreenVideo.play().catch(e => {
-                console.log("自動再生がブロックされました:", e);
-            });
         }
 
         function closeVideo() {
