@@ -11,7 +11,7 @@
             background: #0d0d12;
             color: #ffffff;
             margin: 0;
-            padding: 20px 10px;
+            padding: 5px 10px;
             min-height: 100vh;
             box-sizing: border-box;
             overflow: hidden;
@@ -24,7 +24,7 @@
             justify-content: flex-end;
             align-items: center;
             max-width: 360px;
-            margin: 0 auto 5px auto;
+            margin: 0 auto 2px auto;
             padding: 0 5px;
             position: relative;
         }
@@ -106,35 +106,10 @@
         /* コンテナ */
         .bottom-group-container {
             position: relative;
-            top: -25px;            
-            margin-bottom: -25px;   
+            top: -15px;            
+            margin-bottom: -15px;   
         }
 
-        /* プログレスバー（ロードゲージ）のスタイル */
-        #loader-container {
-            width: 80%;
-            max-width: 300px;
-            margin: 15px auto;
-            background: #1a1a24;
-            border-radius: 10px;
-            padding: 4px;
-            border: 1px solid #333;
-            box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
-            transition: opacity 0.4s ease, visibility 0.4s;
-        }
-        #loader-bar {
-            width: 0%;
-            height: 12px;
-            background: linear-gradient(90deg, #007bff, #00e5ff);
-            border-radius: 6px;
-            transition: width 0.3s ease;
-        }
-        #loader-text {
-            font-size: 11px;
-            color: #00e5ff;
-            margin-top: 5px;
-            font-weight: bold;
-        }
 
         #debug-info {
             font-size: 11px;
@@ -145,7 +120,7 @@
             border-radius: 6px;
             max-width: 90%;
             word-break: break-all;
-            margin-top: 15px;      
+            margin-top: 5px;      
             border: 1px solid #222;
         }
 
@@ -153,14 +128,14 @@
             font-size: 20px;
             color: #00e5ff;
             font-weight: bold;
-            margin: 5px 0 10px 0;
-            height: 35px;
+            margin: 2px 0 4px 0;
+            height: 28px;
         }
         #result-display {
             font-size: 15px;
             color: #aaa;
-            margin: 5px 0 15px 0;
-            height: 40px;
+            margin: 2px 0 5px 0;
+            height: 32px;
             padding: 0 10px;
         }
 
@@ -170,7 +145,7 @@
             justify-content: center;
             gap: 20px;
             font-size: 13px;
-            margin: 5px 0;
+            margin: 2px 0;
             color: #aaaaaa;
         }
         .count-success { color: #4caf50; font-weight: bold; }
@@ -178,8 +153,8 @@
 
         /* 固定答えモード時専用の動画ボタンエリア */
         .video-action-container {
-            margin: 8px 0;
-            min-height: 32px;
+            margin: 3px 0;
+            min-height: 28px;
         }
 
         #pin-preview {
@@ -188,7 +163,7 @@
             background: #1e1e24;
             padding: 8px;
             border-radius: 6px;
-            margin: 10px auto;
+            margin: 4px auto;
             max-width: 90%;
             border: 1px solid #3a3a4a;
             min-height: 18px;
@@ -197,7 +172,7 @@
             font-size: 16px;
             color: #00ff66;
             font-family: monospace;
-            margin: 5px 0;
+            margin: 2px 0;
             height: 20px;
         }
         #canvas-container {
@@ -251,7 +226,47 @@
             color: #ffca28;
             border: 1px solid #ffca28;
         }
-        button.restart-btn {
+
+        /* 「動画を見る」ボタン：参考画像のレイアウト */
+        button.video-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            width: 214px;
+            height: 44px;
+            padding: 0 14px;
+            margin: 3px;
+            background: #00b8d4;
+            color: #07151a;
+            border: none;
+            border-radius: 7px;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            box-sizing: border-box;
+            transition: background 0.2s;
+        }
+
+        button.video-btn::before {
+            content: "▶";
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        button.video-btn:hover {
+            background: #12c7df;
+        }
+
+        button.video-btn:disabled {
+            background: #00b8d4;
+            color: #07151a;
+            border: none;
+            cursor: pointer;
+        }
+
+button.restart-btn {
             background: #2e2a14;
             color: #ffd54f;
             border: 1px solid #ffd54f;
@@ -324,7 +339,7 @@
         
         .back-btn {
             display: inline-block;
-            margin-top: 25px;
+            margin-top: 10px;
             color: #888888;
             font-size: 14px;
             text-decoration: none;
@@ -349,14 +364,8 @@
     </div>
 
     <div id="system-status"> システム起動中... </div>
-    
-    <!-- プログレスバー（ロードゲージ） -->
-    <div id="loader-container">
-        <div id="loader-bar"></div>
-        <div id="loader-text">AIモデル読み込み中... 0%</div>
-    </div>
 
-    <div id="result-display">AIモデルの読み込みを待っています。</div>
+    <div id="result-display"></div>
     
     <div class="counter-container">
         <div>成功: <span id="success-count" class="count-success">0</span> 回</div>
@@ -365,7 +374,7 @@
 
     <!-- カウント表示の下に配置した「動画を見る」ボタンエリア -->
     <div class="video-action-container">
-        <button id="viewVideoBtn" class="verify-btn" onclick="openVideo()" style="display: none;" disabled>動画を見る</button>
+        <button id="viewVideoBtn" class="video-btn" onclick="openVideo()" style="display: none;" disabled>お手本の動画を見る</button>
     </div>
 
     <div id="pin-preview">登録された図形: (未登録)</div>
@@ -435,15 +444,6 @@
         const successCountText = document.getElementById('success-count');
         const errorCountText = document.getElementById('error-count');
 
-        const loaderContainer = document.getElementById('loader-container');
-        const loaderBar = document.getElementById('loader-bar');
-        const loaderText = document.getElementById('loader-text');
-
-        function updateProgress(percent, message) {
-            loaderBar.style.width = percent + "%";
-            loaderText.innerText = `${message} (${percent}%)`;
-        }
-
         const svgIcons = {
             "〇": `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/></svg>`,
             "△": `<svg viewBox="0 0 24 24"><polygon points="12,4.5 4,19.5 20,19.5"/></svg>`,
@@ -489,26 +489,14 @@
 
         async function initAI() {
             try {
-                updateProgress(20, "AIライブラリ準備中...");
-                updateProgress(50, "ニューラルネットワーク読み込み中...");
-                model = await tmImage.load(URL + "model.json", URL + "metadata.json");
-                
-                updateProgress(85, "ラベル・設定データ構築中...");
-                labels = model.getClassLabels();
+
+model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+labels = model.getClassLabels();
                 
                 const localPIN = localStorage.getItem("savedPIN");
                 if (localPIN) {
                     savedPIN = JSON.parse(localPIN);
                 }
-
-                updateProgress(100, "ロード完了！");
-
-                setTimeout(() => {
-                    loaderContainer.style.opacity = "0";
-                    setTimeout(() => {
-                        loaderContainer.style.display = "none";
-                    }, 400);
-                }, 300);
 
                 if (savedPIN.length === 4) {
                     isAuthMode = true;
@@ -545,8 +533,6 @@
                 clearCanvas();
             } catch (e) {
                 statusDisplay.innerHTML = "❌ エラー: ロード失敗";
-                loaderText.innerText = "読み込みエラーが発生しました";
-                loaderBar.style.background = "#ff5252";
             }
         }
 
