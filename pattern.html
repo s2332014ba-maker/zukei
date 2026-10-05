@@ -409,14 +409,13 @@
                 actionBtn.style.display = "none";
                 initApp();
             } else if (mode === 'normal' && isFixedAnswerMode) {
-                if (confirm("「通常モード (自由登録)」に切り替えますか？")) {
-                    isFixedAnswerMode = false;
-                    btnNormalMode.classList.add('active-mode');
-                    btnFixedMode.classList.remove('active-mode');
-                    actionBtn.style.display = "inline-block";
-                    isAuthMode = false;
-                    initApp();
-                }
+                // 確認ダイアログを削除し、すぐに通常モードへ切り替え
+                isFixedAnswerMode = false;
+                btnNormalMode.classList.add('active-mode');
+                btnFixedMode.classList.remove('active-mode');
+                actionBtn.style.display = "inline-block";
+                isAuthMode = false;
+                initApp();
             }
         }
 
@@ -433,7 +432,7 @@
                 messageText.style.color = "#ffffff";
                 messageText.innerText = "固定パスコードの解除に挑戦してください";
                 videoBtn.style.display = "inline-block";
-                actionBtn.style.display = "none"; // 固定解モードでは認証モード移行ボタンを完全に隠して幅を節約
+                actionBtn.style.display = "none";
             } else {
                 videoBtn.style.display = "none";
                 actionBtn.style.display = "inline-block";
