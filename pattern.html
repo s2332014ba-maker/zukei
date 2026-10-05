@@ -7,7 +7,7 @@
     <style>
         body {
             margin: 0;
-            padding: 10px 0; /* 上下の余白を詰める */
+            padding: 2px 0;
             background-color: #000000;
             color: #ffffff;
             font-family: Arial, sans-serif;
@@ -25,19 +25,19 @@
         /* --- 右上歯車メニューのスタイル --- */
         .settings-menu-container {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top: 8px;
+            right: 8px;
             z-index: 100;
         }
 
         .gear-btn {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background-color: #1a1a1e;
             border: 1px solid #44444a;
             color: #d1c4e9;
-            font-size: 1.2rem;
+            font-size: 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -54,7 +54,7 @@
         .dropdown-menu {
             display: none;
             position: absolute;
-            top: 48px;
+            top: 42px;
             right: 0;
             width: 210px;
             background-color: #1a1a1e;
@@ -70,8 +70,8 @@
         }
 
         .dropdown-item {
-            padding: 12px 16px;
-            font-size: 0.9rem;
+            padding: 10px 14px;
+            font-size: 0.85rem;
             font-weight: bold;
             color: #ffffff;
             background: transparent;
@@ -97,46 +97,46 @@
 
         /* --- メインコンテンツのスタイル --- */
         #status {
-            font-size: 0.85rem;
+            font-size: 0.7rem;
             color: #00aaff;
             letter-spacing: 0.5px;
-            margin-bottom: 6px;
+            margin-bottom: 1px;
             text-align: center;
         }
 
         #message {
-            font-size: 1.05rem;
+            font-size: 0.9rem;
             font-weight: bold;
-            margin-bottom: 6px;
-            min-height: 24px;
+            margin-bottom: 2px;
+            min-height: 18px;
             text-align: center;
             padding: 0 10px;
         }
 
         #hint-message {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             color: #888888;
-            margin-bottom: 6px;
-            min-height: 14px;
+            margin-bottom: 1px;
+            min-height: 8px;
             text-align: center;
         }
 
         .counter-container {
             display: flex;
-            gap: 20px;
-            font-size: 0.85rem;
-            margin-bottom: 8px;
+            gap: 16px;
+            font-size: 0.7rem;
+            margin-bottom: 2px;
             color: #aaaaaa;
         }
         .count-success { color: #4caf50; font-weight: bold; }
         .count-error { color: #f44336; font-weight: bold; }
 
         #timer-display {
-            font-size: 1rem;
+            font-size: 0.85rem;
             color: #00ff66;
             font-family: monospace;
-            margin-bottom: 8px;
-            min-height: 20px;
+            margin-bottom: 2px;
+            min-height: 16px;
         }
 
         /* --- 固定モード用 動画ボタン --- */
@@ -144,11 +144,11 @@
             background: #00aaff;
             color: #000;
             display: none;
-            margin-bottom: 8px;
-            padding: 6px 14px;
-            font-size: 0.8rem;
+            margin-bottom: 2px;
+            padding: 3px 8px;
+            font-size: 0.7rem;
             font-weight: bold;
-            border-radius: 6px;
+            border-radius: 4px;
             border: none;
             cursor: pointer;
             transition: background 0.2s;
@@ -197,8 +197,8 @@
 
         #canvas-container {
             position: relative;
-            width: 280px;
-            height: 280px;
+            width: 380px;
+            height: 380px;
             transition: opacity 0.2s;
         }
 
@@ -210,45 +210,44 @@
         canvas {
             background-color: transparent;
             cursor: pointer;
-            width: 280px;
-            height: 280px;
+            width: 380px;
+            height: 380px;
         }
 
         .controls {
-            margin-top: 12px;
+            margin-top: 4px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
         }
 
         .btn-row {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
 
+        /* --- ボタン共通（サイズを少し大きく） --- */
         button.action-btn, button.restart-btn, button.reset-count-btn {
-            padding: 8px 16px;
-            font-size: 0.85rem;
+            padding: 7px 12px;
+            font-size: 0.8rem;
             font-weight: bold;
             cursor: pointer;
-            border-radius: 6px;
+            border-radius: 5px;
             border: none;
-            background: #333;
             color: white;
             transition: background 0.2s;
         }
 
         button:disabled {
-            background: #1a1a1a;
-            color: #555;
+            background: #1a1a1a !important;
+            color: #555 !important;
             cursor: not-allowed;
-            border: 1px solid #222;
+            border: 1px solid #222 !important;
         }
 
         button.action-btn {
             background: #007bff;
-            color: white;
         }
 
         button.restart-btn {
@@ -261,15 +260,13 @@
             background: #2d1d1d;
             color: #ff5252;
             border: 1px solid #ff5252;
-            padding: 5px 12px;
-            font-size: 0.7rem;
         }
 
         .back-btn {
             display: inline-block;
-            margin-top: 12px;
+            margin-top: 4px;
             color: #888;
-            font-size: 13px;
+            font-size: 11px;
             text-decoration: none;
         }
     </style>
@@ -300,15 +297,16 @@
     <button id="videoBtn" class="video-btn" onclick="openVideo()">▶ お手本の動画を見る</button>
 
     <div id="canvas-container">
-        <canvas id="lockCanvas" width="280" height="280"></canvas>
+        <!-- キャンバス解像度（380×380） -->
+        <canvas id="lockCanvas" width="380" height="380"></canvas>
     </div>
 
     <div class="controls">
         <div class="btn-row">
             <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
             <button id="actionBtn" class="action-btn" onclick="switchMode()" disabled>認証モードへ移行</button>
+            <button class="reset-count-btn" onclick="resetCounters()">カウントリセット</button>
         </div>
-        <button class="reset-count-btn" onclick="resetCounters()">カウントのみリセット</button>
     </div>
 
     <div>
@@ -372,8 +370,10 @@
 
         const spacingX = canvas.width / (cols + 1);
         const spacingY = canvas.height / (rows + 1);
-        const radius = 10;
-        const hitRadius = 22;
+        
+        // 点のサイズとタッチ判定
+        const radius = 15;
+        const hitRadius = 33;
 
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
@@ -409,7 +409,6 @@
                 actionBtn.style.display = "none";
                 initApp();
             } else if (mode === 'normal' && isFixedAnswerMode) {
-                // 確認ダイアログを削除し、すぐに通常モードへ切り替え
                 isFixedAnswerMode = false;
                 btnNormalMode.classList.add('active-mode');
                 btnFixedMode.classList.remove('active-mode');
@@ -498,7 +497,7 @@
             if (selectedCircles.length > 0) {
                 ctx.beginPath();
                 ctx.strokeStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? (isFixedAnswerMode ? '#00aaff' : '#ffd54f') : '#00adb5'));
-                ctx.lineWidth = 5;
+                ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
 
@@ -525,7 +524,7 @@
                     ctx.fill();
                     
                     ctx.beginPath();
-                    ctx.arc(circle.x, circle.y, radius + 6, 0, Math.PI * 2);
+                    ctx.arc(circle.x, circle.y, radius + 9, 0, Math.PI * 2);
                     ctx.strokeStyle = isSuccessState ? 'rgba(76, 175, 80, 0.3)' : (isError ? 'rgba(244, 67, 54, 0.3)' : (isAuthMode ? (isFixedAnswerMode ? 'rgba(0, 170, 255, 0.3)' : 'rgba(255, 213, 79, 0.3)') : 'rgba(0, 173, 181, 0.3)'));
                     ctx.lineWidth = 2;
                     ctx.stroke();
