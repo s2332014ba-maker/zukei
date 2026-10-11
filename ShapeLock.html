@@ -562,7 +562,7 @@ labels = model.getClassLabels();
                 actionBtn.style.display = "none";
                 viewVideoBtn.style.display = "inline-block"; // 固定モードのときだけ表示
                 viewVideoBtn.disabled = false;                // 有効化
-                document.getElementById('pin-preview').style.display = "none";
+                
                 document.getElementById('viewBtn').style.display = "none";
                 
                 updatePINDisplay();
@@ -793,7 +793,7 @@ labels = model.getClassLabels();
                 return;
             }
 
-            let prefix = isFixedAnswerMode ? "固定の答え: " : "登録された図形: ";
+            let prefix = isFixedAnswerMode ? " " : " ";
             let text = prefix;
             savedPIN.forEach((val) => {
                 if (isPINVisible) {
