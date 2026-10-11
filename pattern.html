@@ -343,7 +343,7 @@
         const fullscreenVideo = document.getElementById('fullscreen-video');
 
         // 固定の答えパターン
-        const FIXED_PATTERN = [0, 1, 2, 4, 6, 7, 8];
+        const FIXED_PATTERN = [2,4,1,0,3,6,7,8];
 
         // 状態管理
         let isFixedAnswerMode = false;
@@ -429,7 +429,7 @@
                 statusText.innerText = "固定答えモード (固定解)";
                 statusText.style.color = "#00aaff";
                 messageText.style.color = "#ffffff";
-                messageText.innerText = "固定パスコードの解除に挑戦してください";
+                messageText.innerText = "パスコードの解除に挑戦してください";
                 videoBtn.style.display = "inline-block";
                 actionBtn.style.display = "none";
             } else {
@@ -696,7 +696,7 @@
                 statusText.innerText = "固定答えモード (固定解)";
                 statusText.style.color = "#00aaff";
                 messageText.style.color = "#ffffff";
-                messageText.innerText = "固定パスコードの解除に挑戦してください";
+                messageText.innerText = "パスコードの解除に挑戦してください";
                 videoBtn.style.display = "inline-block";
             } else if (isAuthMode) {
                 statusText.innerText = "パターン認証モード実行中";
