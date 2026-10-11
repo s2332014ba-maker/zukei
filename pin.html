@@ -43,7 +43,7 @@
             cursor: pointer;
             backdrop-filter: blur(5px);
             transition: background 0.2s;
-            flex: unset; /* flexの影響を受けないように */
+            flex: unset;
         }
 
         .menu-btn:active {
@@ -108,7 +108,7 @@
             line-height: 1.4;
         }
 
-        /* --- 固定モード用 動画ボタン（サイズが大きくなりすぎないよう調整） --- */
+        /* --- 固定モード用 動画ボタン --- */
         .video-btn {
             background: #00bcd4;
             color: #000;
@@ -121,7 +121,7 @@
             border: none;
             cursor: pointer;
             transition: background 0.2s;
-            flex: unset !important; /* flexでの自動拡大を確実に防止 */
+            flex: unset !important;
             width: auto !important;
         }
 
@@ -157,7 +157,6 @@
             border-radius: 8px;
         }
 
-        /* 閉じるボタンが大きくならないよう調整 */
         .close-video-btn {
             margin-top: 15px;
             padding: 8px 24px;
@@ -266,13 +265,14 @@
 
         .controls {
             margin-top: 25px;
-            width: 320px;
+            width: 400px;
+            max-width: 95vw;
         }
 
         .btn-row {
             display: flex;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             width: 100%;
         }
 
@@ -280,7 +280,7 @@
         button {
             flex: 1;
             padding: 10px 4px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: bold;
             cursor: pointer;
             border-radius: 6px;
@@ -297,6 +297,12 @@
             color: #444;
             cursor: not-allowed;
             border: 1px solid #222;
+        }
+
+        button.confirm-btn {
+            background: #3a3a3c;
+            color: #ffd54f;
+            border: 1px solid #ffd54f;
         }
 
         button.action-btn {
@@ -379,6 +385,7 @@
 
     <div class="controls">
         <div class="btn-row">
+            <button id="confirmPassBtn" class="confirm-btn" onclick="showSavedPassword()">登録確認</button>
             <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
             <button id="actionBtn" class="action-btn" onclick="switchMode()" disabled>認証モードへ移行</button>
             <button class="reset-count-btn" onclick="resetCounters()">カウントリセット</button>
@@ -404,6 +411,7 @@
         const timerDisplay = document.getElementById('timer-display');
         const keypad = document.getElementById('keypad');
         const actionBtn = document.getElementById('actionBtn');
+        const confirmPassBtn = document.getElementById('confirmPassBtn');
         const successCountText = document.getElementById('success-count');
         const errorCountText = document.getElementById('error-count');
         const dropdownMenu = document.getElementById('dropdownMenu');
@@ -440,6 +448,15 @@
             }
         });
 
+        /* --- 登録されたパスコードを確認する関数 --- */
+        function showSavedPassword() {
+            if (!savedPassword) {
+                alert("パスコードが登録されていません。");
+            } else {
+                alert(`登録されたパスコード: ${savedPassword}`);
+            }
+        }
+
         function selectSystemMode(mode) {
             dropdownMenu.classList.remove('show');
             if (systemMode === mode) return;
@@ -457,6 +474,7 @@
                 messageText.innerText = `パスコードの解除に挑戦してください`;
                 
                 actionBtn.style.display = 'none';
+                confirmPassBtn.style.display = 'none'; // 固定モード時は「登録確認」を消す
                 videoBtn.style.display = 'inline-block';
             } else {
                 modeNormalBtn.classList.add('active');
@@ -464,6 +482,7 @@
                 isAuthMode = false;
                 
                 actionBtn.style.display = 'block';
+                confirmPassBtn.style.display = 'block'; // 通常モード時は表示
                 videoBtn.style.display = 'none';
                 
                 initApp();
@@ -496,6 +515,12 @@
                 actionBtn.disabled = true;
             }
             videoBtn.style.display = 'none';
+            
+            if (systemMode === 'fixed') {
+                confirmPassBtn.style.display = 'none';
+            } else {
+                confirmPassBtn.style.display = 'block';
+            }
 
             successCount = parseInt(localStorage.getItem("pass_successCount")) || 0;
             errorCount = parseInt(localStorage.getItem("pass_errorCount")) || 0;
@@ -673,11 +698,13 @@
                 statusText.style.color = "#00bcd4";
                 messageText.style.color = "#ffffff";
                 messageText.innerText = "リスタートしました。入力してください。";
+                confirmPassBtn.style.display = 'none';
             } else if (isAuthMode) {
                 statusText.innerText = "パスコード認証モード実行中";
                 statusText.style.color = "#ffca28";
                 messageText.style.color = "#ffffff";
                 messageText.innerText = "登録データを維持してリスタートしました。";
+                confirmPassBtn.style.display = 'block';
             } else {
                 savedPassword = '';
                 localStorage.removeItem("savedPassword");
@@ -688,6 +715,7 @@
                 messageText.innerText = "新しいパスコードを入力 (0/5)";
                 actionBtn.disabled = true;
                 actionBtn.innerText = "認証モードへ移行";
+                confirmPassBtn.style.display = 'block';
             }
             if (navigator.vibrate) navigator.vibrate(100);
         }
@@ -718,6 +746,7 @@
                 messageText.style.color = "#ffffff";
                 messageText.innerText = "登録したパスコードを入力して解除してください";
                 actionBtn.innerText = "登録からやり直す";
+                confirmPassBtn.style.display = 'block';
             } else {
                 isAuthMode = false;
                 savedPassword = '';
@@ -729,6 +758,7 @@
                 messageText.innerText = "新しいパスコードを入力 (0/5)";
                 actionBtn.innerText = "認証モードへ移行";
                 actionBtn.disabled = true;
+                confirmPassBtn.style.display = 'block';
             }
         }
 
