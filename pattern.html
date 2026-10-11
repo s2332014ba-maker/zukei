@@ -113,14 +113,6 @@
             padding: 0 10px;
         }
 
-        #hint-message {
-            font-size: 0.7rem;
-            color: #888888;
-            margin-bottom: 1px;
-            min-height: 8px;
-            text-align: center;
-        }
-
         .counter-container {
             display: flex;
             gap: 16px;
@@ -215,7 +207,7 @@
         }
 
         .controls {
-            margin-top: 4px;
+            margin-top: 6px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -225,10 +217,12 @@
         .btn-row {
             display: flex;
             gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
-        /* --- ボタン共通（サイズを少し大きく） --- */
-        button.action-btn, button.restart-btn, button.reset-count-btn {
+        /* --- ボタン共通 --- */
+        button.action-btn, button.restart-btn, button.reset-count-btn, button.show-pattern-btn {
             padding: 7px 12px;
             font-size: 0.8rem;
             font-weight: bold;
@@ -236,7 +230,7 @@
             border-radius: 5px;
             border: none;
             color: white;
-            transition: background 0.2s;
+            transition: background 0.2s, opacity 0.2s;
         }
 
         button:disabled {
@@ -244,6 +238,12 @@
             color: #555 !important;
             cursor: not-allowed;
             border: 1px solid #222 !important;
+        }
+
+        button.show-pattern-btn {
+            background: #3f4756;
+            color: #ffcb2b;
+            border: 1px solid #ffcb2b;
         }
 
         button.action-btn {
@@ -282,14 +282,13 @@
         </div>
     </div>
 
-    <div id="status">通常モード (自由登録)</div>
-    <div id="message">新しいパターンを描いてください</div>
-    <div id="hint-message"></div>
-
     <div class="counter-container">
         <div>成功: <span id="success-count" class="count-success">0</span> 回</div>
         <div>失敗: <span id="error-count" class="count-error">0</span> 回</div>
     </div>
+
+    <div id="status">通常モード (自由登録)</div>
+    <div id="message">新しいパターンを描いてください</div>
 
     <div id="timer-display">タイム: 0.00 秒</div>
     
@@ -303,6 +302,7 @@
 
     <div class="controls">
         <div class="btn-row">
+            <button id="showPatternBtn" class="show-pattern-btn">登録図形を確認</button>
             <button id="keepRestartBtn" class="restart-btn" onclick="restartInputOnly()">リスタート</button>
             <button id="actionBtn" class="action-btn" onclick="switchMode()" disabled>認証モードへ移行</button>
             <button class="reset-count-btn" onclick="resetCounters()">カウントリセット</button>
@@ -328,9 +328,9 @@
         const ctx = canvas.getContext('2d');
         const statusText = document.getElementById('status');
         const messageText = document.getElementById('message');
-        const hintText = document.getElementById('hint-message');
         const timerDisplay = document.getElementById('timer-display');
         const actionBtn = document.getElementById('actionBtn');
+        const showPatternBtn = document.getElementById('showPatternBtn');
         const successCountText = document.getElementById('success-count');
         const errorCountText = document.getElementById('error-count');
         
@@ -351,6 +351,7 @@
         let canvasInputLocked = false;
         let savedPattern = [];
         let isSuccessState = false;
+        let isShowingRegisteredPattern = false;
 
         // カウント用変数
         let successCount = 0;
@@ -432,10 +433,14 @@
                 messageText.innerText = "パスコードの解除に挑戦してください";
                 videoBtn.style.display = "inline-block";
                 actionBtn.style.display = "none";
+                
+                // 固定モード時は「登録図形を確認」ボタンを非表示
+                showPatternBtn.style.display = "none";
             } else {
                 videoBtn.style.display = "none";
                 actionBtn.style.display = "inline-block";
-                hintText.innerText = "";
+                showPatternBtn.style.display = "inline-block";
+                
                 const localPattern = localStorage.getItem("savedPattern");
                 if (localPattern) {
                     try {
@@ -465,6 +470,8 @@
                     actionBtn.innerText = "認証モードへ移行";
                     actionBtn.disabled = true;
                 }
+                
+                showPatternBtn.disabled = savedPattern.length === 0;
             }
 
             successCount = parseInt(localStorage.getItem("pattern_successCount")) || 0;
@@ -494,22 +501,30 @@
         function draw(isError = false) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (selectedCircles.length > 0) {
+            const displayCircles = (isShowingRegisteredPattern && !isFixedAnswerMode)
+                ? savedPattern
+                : selectedCircles;
+
+            if (displayCircles.length > 0) {
                 ctx.beginPath();
-                ctx.strokeStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? (isFixedAnswerMode ? '#00aaff' : '#ffd54f') : '#00adb5'));
+                const strokeColor = isShowingRegisteredPattern 
+                    ? '#ffcb2b' 
+                    : (isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? (isFixedAnswerMode ? '#00aaff' : '#ffd54f') : '#00adb5')));
+                
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
 
-                const firstCircle = circles[selectedCircles[0]];
+                const firstCircle = circles[displayCircles[0]];
                 ctx.moveTo(firstCircle.x, firstCircle.y);
 
-                for (let i = 1; i < selectedCircles.length; i++) {
-                    const c = circles[selectedCircles[i]];
+                for (let i = 1; i < displayCircles.length; i++) {
+                    const c = circles[displayCircles[i]];
                     ctx.lineTo(c.x, c.y);
                 }
 
-                if (isDrawing) {
+                if (isDrawing && !isShowingRegisteredPattern) {
                     ctx.lineTo(currentPos.x, currentPos.y);
                 }
                 ctx.stroke();
@@ -519,15 +534,31 @@
                 ctx.beginPath();
                 ctx.arc(circle.x, circle.y, radius, 0, Math.PI * 2);
                 
-                if (selectedCircles.includes(circle.id)) {
-                    ctx.fillStyle = isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? (isFixedAnswerMode ? '#00aaff' : '#ffd54f') : '#00adb5'));
+                if (displayCircles.includes(circle.id)) {
+                    const fillColor = isShowingRegisteredPattern 
+                        ? '#ffcb2b' 
+                        : (isSuccessState ? '#4caf50' : (isError ? '#f44336' : (isAuthMode ? (isFixedAnswerMode ? '#00aaff' : '#ffd54f') : '#00adb5')));
+                    
+                    ctx.fillStyle = fillColor;
                     ctx.fill();
                     
                     ctx.beginPath();
                     ctx.arc(circle.x, circle.y, radius + 9, 0, Math.PI * 2);
-                    ctx.strokeStyle = isSuccessState ? 'rgba(76, 175, 80, 0.3)' : (isError ? 'rgba(244, 67, 54, 0.3)' : (isAuthMode ? (isFixedAnswerMode ? 'rgba(0, 170, 255, 0.3)' : 'rgba(255, 213, 79, 0.3)') : 'rgba(0, 173, 181, 0.3)'));
+                    ctx.strokeStyle = isShowingRegisteredPattern
+                        ? 'rgba(255, 203, 43, 0.4)'
+                        : (isSuccessState ? 'rgba(76, 175, 80, 0.3)' : (isError ? 'rgba(244, 67, 54, 0.3)' : (isAuthMode ? (isFixedAnswerMode ? 'rgba(0, 170, 255, 0.3)' : 'rgba(255, 213, 79, 0.3)') : 'rgba(0, 173, 181, 0.3)')));
                     ctx.lineWidth = 2;
                     ctx.stroke();
+
+                    // 確認表示のときは各点の上に順番番号を描画
+                    if (isShowingRegisteredPattern && !isFixedAnswerMode) {
+                        const orderIndex = displayCircles.indexOf(circle.id) + 1;
+                        ctx.fillStyle = "#000000";
+                        ctx.font = "bold 14px Arial";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText(orderIndex, circle.x, circle.y);
+                    }
                 } else {
                     ctx.fillStyle = '#555555';
                     ctx.fill();
@@ -579,7 +610,7 @@
         }
 
         function startHandler(e) {
-            if (canvasContainer.classList.contains('locked') || canvasInputLocked) return;
+            if (canvasContainer.classList.contains('locked') || canvasInputLocked || isShowingRegisteredPattern) return;
             e.preventDefault();
             
             if (!isTiming) {
@@ -595,7 +626,7 @@
         }
 
         function moveHandler(e) {
-            if (!isDrawing || canvasInputLocked) return;
+            if (!isDrawing || canvasInputLocked || isShowingRegisteredPattern) return;
             e.preventDefault();
             currentPos = getMousePos(e);
             checkCollision(currentPos);
@@ -603,7 +634,7 @@
         }
 
         function endHandler(e) {
-            if (!isDrawing) return;
+            if (!isDrawing || isShowingRegisteredPattern) return;
             isDrawing = false;
 
             stopTimer();
@@ -628,6 +659,7 @@
                 timerDisplay.innerHTML = `登録タイム: ${finalTime} 秒`;
                 messageText.innerHTML = `パターン登録完了！「認証モードへ移行」を押してください。`;
                 actionBtn.disabled = false;
+                showPatternBtn.disabled = false;
             } else {
                 const targetPattern = isFixedAnswerMode ? FIXED_PATTERN : savedPattern;
 
@@ -662,6 +694,25 @@
                 updateCounterDisplay();
             }
         }
+
+        // --- 登録図形確認ボタンのイベント設定 ---
+        function showRegisteredPattern() {
+            if (isFixedAnswerMode || savedPattern.length === 0) return;
+            isShowingRegisteredPattern = true;
+            draw();
+        }
+
+        function hideRegisteredPattern() {
+            if (!isShowingRegisteredPattern) return;
+            isShowingRegisteredPattern = false;
+            draw();
+        }
+
+        showPatternBtn.addEventListener('mousedown', showRegisteredPattern);
+        showPatternBtn.addEventListener('mouseup', hideRegisteredPattern);
+        showPatternBtn.addEventListener('mouseleave', hideRegisteredPattern);
+        showPatternBtn.addEventListener('touchstart', (e) => { e.preventDefault(); showRegisteredPattern(); });
+        showPatternBtn.addEventListener('touchend', (e) => { e.preventDefault(); hideRegisteredPattern(); });
 
         // --- 動画再生関連の関数 ---
         function openVideo() {
@@ -698,11 +749,14 @@
                 messageText.style.color = "#ffffff";
                 messageText.innerText = "パスコードの解除に挑戦してください";
                 videoBtn.style.display = "inline-block";
+                showPatternBtn.style.display = "none";
             } else if (isAuthMode) {
                 statusText.innerText = "パターン認証モード実行中";
                 statusText.style.color = "#ffd54f";
                 messageText.style.color = "#ffffff";
                 messageText.innerText = "登録データを維持してリスタートしました。";
+                showPatternBtn.style.display = "inline-block";
+                showPatternBtn.disabled = false;
             } else {
                 savedPattern = [];
                 localStorage.removeItem("savedPattern");
@@ -713,6 +767,8 @@
                 messageText.innerText = "新しいパターンを描いてください";
                 actionBtn.disabled = true;
                 actionBtn.innerText = "認証モードへ移行";
+                showPatternBtn.style.display = "inline-block";
+                showPatternBtn.disabled = true;
             }
         }
 
@@ -741,6 +797,8 @@
                 messageText.style.color = "#ffffff";
                 messageText.innerText = "登録したパターンを入力して解除してください";
                 actionBtn.innerText = "登録からやり直す";
+                showPatternBtn.style.display = "inline-block";
+                showPatternBtn.disabled = false;
             } else {
                 isAuthMode = false;
                 savedPattern = [];
@@ -752,6 +810,8 @@
                 messageText.innerText = "新しいパターンを描いてください";
                 actionBtn.innerText = "認証モードへ移行";
                 actionBtn.disabled = true;
+                showPatternBtn.style.display = "inline-block";
+                showPatternBtn.disabled = true;
             }
         }
 
