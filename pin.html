@@ -414,7 +414,7 @@
         const videoOverlay = document.getElementById('video-overlay');
         const fullscreenVideo = document.getElementById('fullscreen-video');
         
-        const FIXED_PASSWORD = "12345";
+        const FIXED_PASSWORD = "14952";
 
         let systemMode = 'normal';
         let isAuthMode = false;
@@ -454,7 +454,7 @@
                 statusText.innerText = "固定答えモード (チャレンジ)";
                 statusText.style.color = "#00bcd4";
                 messageText.style.color = "#ffffff";
-                messageText.innerText = `固定パスコードの解除に挑戦してください`;
+                messageText.innerText = `パスコードの解除に挑戦してください`;
                 
                 actionBtn.style.display = 'none';
                 videoBtn.style.display = 'inline-block';
@@ -647,7 +647,6 @@
         function openVideo() {
             videoOverlay.classList.add('show');
             fullscreenVideo.currentTime = 0;
-            fullscreenVideo.play().catch(() => {});
         }
 
         function closeVideo() {
