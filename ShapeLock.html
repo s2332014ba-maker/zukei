@@ -423,7 +423,7 @@ button.restart-btn {
 
         // 固定答えモード用変数
         let isFixedAnswerMode = false;
-        const FIXED_PIN = ["〇", "△", "□", "⛥"];
+        const FIXED_PIN = ["⛥", "△", "∞", "〇"];
 
         // カウント用変数
         let successCount = 0;
@@ -556,21 +556,21 @@ labels = model.getClassLabels();
 
                 statusDisplay.innerHTML = " 固定答えモード ";
                 statusDisplay.style.color = "#00e5ff";
-                resultDisplay.innerHTML = "固定答えがセットされました。順番通りに入力してください。 [進行度: _ _ _ _]";
+                resultDisplay.innerHTML = "答えがセットされました。順番通りに入力してください。 [進行度: _ _ _ _]";
                 resultDisplay.style.color = "#00e5ff";
 
                 actionBtn.style.display = "none";
                 viewVideoBtn.style.display = "inline-block"; // 固定モードのときだけ表示
                 viewVideoBtn.disabled = false;                // 有効化
-
-                document.getElementById('viewBtn').innerText = "登録図形を確認";
-                document.getElementById('viewBtn').disabled = false;
+                document.getElementById('pin-preview').style.display = "none";
+                document.getElementById('viewBtn').style.display = "none";
                 
                 updatePINDisplay();
             } else {
                 isFixedAnswerMode = false;
                 actionBtn.style.display = "inline-block";
                 viewVideoBtn.style.display = "none"; // 通常モード時は非表示
+                document.getElementById('viewBtn').style.display = "inline-block";
 
                 const localPIN = localStorage.getItem("savedPIN");
                 if (localPIN) {
@@ -671,7 +671,6 @@ labels = model.getClassLabels();
             const video = document.getElementById('fullscreen-video');
             overlay.classList.add('show');
             video.currentTime = 0;
-            video.play().catch(e => console.log("自動再生がブロックされました:", e));
         }
 
         function closeVideo() {
